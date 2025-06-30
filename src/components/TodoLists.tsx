@@ -276,14 +276,36 @@ const TodoLists: React.FC = () => {
     return { completed, total, percentage: total > 0 ? Math.round((completed / total) * 100) : 0 };
   };
 
-  // Suodata tehtävät henkilön näkymän mukaan
+  // Suodata tehtävät henkilön näkymän mukaan (ei sisällä viikkotehtäviä)
   const getFilteredTasks = (person: Person, viewType: 'today' | 'week') => {
     if (viewType === 'today') {
       return person.tasks.filter(task => task.category === 'today');
     } else {
-      // Viikkonäkymä näyttää kaikki tehtävät
-      return person.tasks;
+      // Viikkonäkymä näyttää tänään ja ajoitetut tehtävät, mutta ei viikkotehtäviä
+      return person.tasks.filter(task => task.category === 'today' || task.category === 'scheduled');
     }
+  };
+
+  // Hae viikkotehtävät erikseen
+  const getWeeklyTasks = (person: Person) => {
+    return person.tasks.filter(task => task.category === 'weekly');
+  };
+
+  // Hae kaikki viikkotehtävät (poista duplikaatit jaetuista)
+  const getAllWeeklyTasks = () => {
+    const allTasks = people.flatMap(person => 
+      person.tasks.filter(task => 
+        task.category === 'weekly' && 
+        !task.completed
+      ).map(task => ({ ...task, personName: person.name, personId: person.id }))
+    );
+    
+    // Poista duplikaatit jaetuista tehtävistä
+    const uniqueTasks = allTasks.filter((task, index, arr) => 
+      arr.findIndex(t => t.id === task.id) === index
+    );
+    
+    return uniqueTasks;
   };
 
   // Tarkista onko tehtävä myöhässä
@@ -343,7 +365,7 @@ const TodoLists: React.FC = () => {
     return days;
   };
 
-  // Hae tehtävät tietylle päivälle
+  // Hae tehtävät tietylle päivälle (ei sisällä viikkotehtäviä)
   const getTasksForDay = (person: Person, date: Date) => {
     return person.tasks.filter(task => {
       if (task.category === 'today') {
@@ -353,10 +375,8 @@ const TodoLists: React.FC = () => {
       } else if (task.category === 'scheduled' && task.dueDate) {
         // Ajoitetut tehtävät näkyvät määrättynä päivänä
         return date.toDateString() === task.dueDate.toDateString();
-      } else if (task.category === 'weekly') {
-        // Viikkotehtävät näkyvät koko viikon
-        return true;
       }
+      // Viikkotehtävät eivät näy kalenterissa
       return false;
     });
   };
@@ -461,12 +481,160 @@ const TodoLists: React.FC = () => {
     );
   };
 
+  const renderTaskItem = (task: Task, personId: string) => (
+    <div
+      key={task.id}
+      onClick={() => openTaskModal(task, personId)}
+      className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-sm ${
+        task.completed 
+          ? 'bg-slate-50 border-slate-200 opacity-60' 
+          : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+      } ${task.isShared ? 'border-l-4 border-l-orange-400' : ''}`}
+      title={`Klikkaa avataksesi: ${task.text}`}
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleTask(personId, task.id);
+        }}
+        className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
+          task.completed
+            ? 'bg-green-500 border-green-500 text-white'
+            : 'border-slate-300 hover:border-green-500'
+        }`}
+      >
+        {task.completed && <Check className="h-2 w-2" />}
+      </button>
+      
+      <div className={`w-2 h-2 rounded-full ${getPriorityColor(task.priority)}`} />
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center space-x-1">
+          <span className={`text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-800'}`}>
+            {task.text}
+          </span>
+          {task.isShared && (
+            <Users className="h-3 w-3 text-orange-600" />
+          )}
+        </div>
+        {task.dueDate && (
+          <div className={`text-xs mt-1 flex items-center space-x-1 ${
+            isTaskOverdue(task) ? 'text-red-600 font-medium' : 
+            isTaskDueToday(task) ? 'text-blue-600 font-medium' : 'text-slate-600'
+          }`}>
+            <Calendar className="h-3 w-3" />
+            <span>{formatDueDate(task.dueDate)}</span>
+            {isTaskOverdue(task) && <span>(Myöhässä)</span>}
+            {isTaskDueToday(task) && <span>(Tänään)</span>}
+          </div>
+        )}
+        {task.isShared && task.completed && task.completedBy && (
+          <div className="text-xs text-green-600">
+            ✓ {task.completedBy}
+          </div>
+        )}
+      </div>
+      
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          deleteTask(personId, task.id);
+        }}
+        className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Otsikko */}
       <div className="text-center">
         <h2 className="text-2xl font-bold text-slate-800 mb-2">Perheen tehtävälistat</h2>
         <p className="text-slate-600">Hallinnoi päivittäisiä tehtäviä ja suunnittele viikkoa</p>
+      </div>
+
+      {/* Viikon aikana hoidettavat tehtävät - Oma osio */}
+      <div className="bg-white rounded-xl border border-slate-200/50 p-6">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center space-x-2">
+          <Clock className="h-5 w-5 text-green-600" />
+          <span>Viikon aikana hoidettavat ({getAllWeeklyTasks().length})</span>
+        </h3>
+        
+        <div className="space-y-3">
+          {getAllWeeklyTasks().map((task) => (
+            <div
+              key={`${task.personId}-${task.id}`}
+              onClick={() => openTaskModal(task, task.personId)}
+              className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-sm ${
+                task.completed 
+                  ? 'bg-slate-50 border-slate-200 opacity-60' 
+                  : 'bg-green-50 border-green-200 hover:bg-green-100'
+              } ${task.isShared ? 'border-l-4 border-l-orange-400' : ''}`}
+              title={`Klikkaa avataksesi: ${task.text}`}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleTask(task.personId, task.id);
+                }}
+                className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
+                  task.completed
+                    ? 'bg-green-500 border-green-500 text-white'
+                    : 'border-slate-300 hover:border-green-500'
+                }`}
+              >
+                {task.completed && <Check className="h-3 w-3" />}
+              </button>
+              
+              <div className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)}`} />
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2">
+                  <span className={`${task.completed ? 'line-through text-slate-500' : 'text-slate-800'}`}>
+                    {task.text}
+                  </span>
+                  {task.isShared && (
+                    <div className="flex items-center space-x-1">
+                      <Users className="h-3 w-3 text-orange-600" />
+                      <span className="text-xs text-orange-600 bg-orange-100 px-1 py-0.5 rounded">
+                        Kumpi kerkeää
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-slate-600">
+                  <span>{task.personName}</span>
+                  <span>•</span>
+                  <span className="text-green-600">Viikon sisällä</span>
+                </div>
+                {task.isShared && task.completed && task.completedBy && (
+                  <div className="text-xs text-green-600 mt-1">
+                    ✓ Tehty: {task.completedBy}
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteTask(task.personId, task.id);
+                }}
+                className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          
+          {getAllWeeklyTasks().length === 0 && (
+            <div className="text-center py-8 text-slate-500">
+              <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>Ei viikkotehtäviä</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Yksittäiset tehtävälistat - Aina rinnakkain */}
@@ -487,6 +655,7 @@ const TodoLists: React.FC = () => {
                     <h3 className="text-lg font-semibold text-slate-800">{person.name}</h3>
                     <p className="text-xs text-slate-600">
                       {getFilteredTasks(person, currentView).filter(task => !task.completed).length} jäljellä
+                      {currentView === 'today' ? ' tänään' : ' viikolla'}
                     </p>
                   </div>
                 </div>
@@ -553,60 +722,9 @@ const TodoLists: React.FC = () => {
                 ) : (
                   // Tämän päivän listanäkymä
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {getFilteredTasks(person, currentView).map(task => (
-                      <div
-                        key={task.id}
-                        onClick={() => openTaskModal(task, person.id)}
-                        className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-sm ${
-                          task.completed 
-                            ? 'bg-slate-50 border-slate-200 opacity-60' 
-                            : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                        } ${task.isShared ? 'border-l-4 border-l-orange-400' : ''}`}
-                        title={`Klikkaa avataksesi: ${task.text}`}
-                      >
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleTask(person.id, task.id);
-                          }}
-                          className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
-                            task.completed
-                              ? 'bg-green-500 border-green-500 text-white'
-                              : 'border-slate-300 hover:border-green-500'
-                          }`}
-                        >
-                          {task.completed && <Check className="h-2 w-2" />}
-                        </button>
-                        
-                        <div className={`w-2 h-2 rounded-full ${getPriorityColor(task.priority)}`} />
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-1">
-                            <span className={`text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-800'}`}>
-                              {task.text}
-                            </span>
-                            {task.isShared && (
-                              <Users className="h-3 w-3 text-orange-600" />
-                            )}
-                          </div>
-                          {task.isShared && task.completed && task.completedBy && (
-                            <div className="text-xs text-green-600">
-                              ✓ {task.completedBy}
-                            </div>
-                          )}
-                        </div>
-                        
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteTask(person.id, task.id);
-                          }}
-                          className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
+                    {getFilteredTasks(person, currentView).map(task => 
+                      renderTaskItem(task, person.id)
+                    )}
                     
                     {getFilteredTasks(person, currentView).length === 0 && (
                       <div className="text-center py-6 text-slate-500">
