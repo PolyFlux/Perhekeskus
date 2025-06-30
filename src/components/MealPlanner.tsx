@@ -526,13 +526,13 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
           </div>
         ))}
 
-        {/* Lisäksi-rivi jokaiselle päivälle - Optimoitu */}
+        {/* Lisäksi-rivi jokaiselle päivälle - Korjattu linjaus */}
         <div className="grid bg-slate-50/50" style={{ gridTemplateColumns: `80px repeat(${Math.min(planningSettings.periodLength, 7)}, 1fr)` }}>
           <div className="p-2 flex items-center justify-center bg-slate-100 text-slate-700 border-r border-slate-200">
             <span className="text-xs font-medium">Lisäksi</span>
           </div>
           {periodMeals.slice(0, Math.min(planningSettings.periodLength, 7)).map((day, dayIndex) => (
-            <div key={dayIndex} className="p-1 border-l border-slate-200 min-h-16">
+            <div key={dayIndex} className="p-1 border-l border-slate-200 min-h-20">
               {/* Kompakti lisäyslomake */}
               <div className="mb-1">
                 <div className="flex space-x-1 mb-1">
