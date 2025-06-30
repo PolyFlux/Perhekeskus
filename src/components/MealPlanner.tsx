@@ -527,80 +527,80 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
         ))}
       </div>
 
-      {/* Lisäksi-osio - Erillinen taulukko */}
+      {/* Lisäksi-osio - Erillinen taulukko - Pienennetty */}
       <div className="bg-white rounded-xl border border-slate-200/50 overflow-hidden">
-        <div className="bg-slate-50 border-b border-slate-200 p-4">
+        <div className="bg-slate-50 border-b border-slate-200 p-3">
           <h3 className="text-lg font-semibold text-slate-800">Lisäksi-tuotteet</h3>
           <p className="text-sm text-slate-600">Päiväkohtaiset ja jakson yleiset lisäostokset</p>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-          {/* Päiväkohtaiset lisäksi */}
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+          {/* Päiväkohtaiset lisäksi - Kompaktimpi */}
+          <div className="space-y-3">
             <h4 className="text-md font-semibold text-slate-800 flex items-center space-x-2">
               <Calendar className="h-4 w-4 text-blue-600" />
               <span>Päiväkohtaiset lisäksi</span>
             </h4>
             
-            <div className="space-y-3">
+            <div className="space-y-2 max-h-80 overflow-y-auto">
               {periodMeals.slice(0, Math.min(planningSettings.periodLength, 7)).map((day, dayIndex) => {
                 const date = new Date(day.date);
                 return (
-                  <div key={dayIndex} className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                    <div className="text-sm font-medium text-blue-800 mb-2">
+                  <div key={dayIndex} className="bg-blue-50 rounded-lg p-2 border border-blue-200">
+                    <div className="text-xs font-medium text-blue-800 mb-2">
                       {getDayName(date, dayIndex)}
                     </div>
                     
-                    {/* Lisäyslomake */}
-                    <div className="space-y-2 mb-3">
-                      <input
-                        type="text"
-                        placeholder="Tuote..."
-                        value={newDayExtra[day.date] || ''}
-                        onChange={(e) => setNewDayExtra({ ...newDayExtra, [day.date]: e.target.value })}
-                        onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <div className="flex space-x-2">
+                    {/* Kompakti lisäyslomake */}
+                    <div className="space-y-1 mb-2">
+                      <div className="flex space-x-1">
                         <input
                           type="text"
-                          placeholder="Määrä..."
+                          placeholder="Tuote..."
+                          value={newDayExtra[day.date] || ''}
+                          onChange={(e) => setNewDayExtra({ ...newDayExtra, [day.date]: e.target.value })}
+                          onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
+                          className="flex-1 px-2 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Määrä"
                           value={newDayExtraQuantity[day.date] || ''}
                           onChange={(e) => setNewDayExtraQuantity({ ...newDayExtraQuantity, [day.date]: e.target.value })}
                           onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
-                          className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-12 px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         />
                         <button
                           onClick={() => addExtraToDay(day.date)}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                          className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition-colors duration-200"
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-3 w-3" />
                         </button>
                       </div>
                     </div>
                     
-                    {/* Näytä lisäksi-tuotteet */}
-                    <div className="space-y-2">
+                    {/* Näytä lisäksi-tuotteet kompaktisti */}
+                    <div className="space-y-1 max-h-16 overflow-y-auto">
                       {(day.extras || []).map((extra) => (
-                        <div key={extra.id} className="flex items-center justify-between bg-white rounded-lg p-2 border border-blue-200 group">
+                        <div key={extra.id} className="flex items-center justify-between bg-white rounded p-1 border border-blue-200 group">
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm text-slate-800">{extra.text}</div>
+                            <div className="text-xs text-slate-800 truncate">{extra.text}</div>
                             {extra.quantity && (
-                              <div className="text-xs text-slate-600">({extra.quantity})</div>
+                              <div className="text-xs text-slate-600 truncate">({extra.quantity})</div>
                             )}
                           </div>
                           <button
                             onClick={() => removeExtraFromDay(day.date, extra.id)}
-                            className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-2"
+                            className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-1"
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-3 w-3" />
                           </button>
                         </div>
                       ))}
                       
                       {(!day.extras || day.extras.length === 0) && (
-                        <div className="text-center py-4 text-slate-500 text-sm">
-                          Ei lisäksi-tuotteita tälle päivälle
+                        <div className="text-center py-2 text-slate-500 text-xs">
+                          Ei lisäksi-tuotteita
                         </div>
                       )}
                     </div>
@@ -611,7 +611,7 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
           </div>
 
           {/* Jakson yleiset lisäksi */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <h4 className="text-md font-semibold text-slate-800 flex items-center space-x-2">
               <ShoppingCart className="h-4 w-4 text-green-600" />
               <span>Jakson yleiset lisäksi ({getPeriodName()})</span>
