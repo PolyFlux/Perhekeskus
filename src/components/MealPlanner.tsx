@@ -527,134 +527,139 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
         ))}
       </div>
 
-      {/* Lisäksi-taulukko - Erillinen taulukko */}
+      {/* Lisäksi-taulukko - Rivipohjainen */}
       <div className="bg-white rounded-xl border border-slate-200/50 overflow-hidden">
         {/* Otsikkorivi */}
-        <div className="grid bg-slate-50 border-b border-slate-200" style={{ gridTemplateColumns: `80px repeat(${Math.min(planningSettings.periodLength, 7)}, 1fr) 200px` }}>
-          <div className="p-2 text-xs font-medium text-slate-700 text-center">Lisäksi</div>
-          {periodMeals.slice(0, Math.min(planningSettings.periodLength, 7)).map((day, index) => {
-            const date = new Date(day.date);
-            return (
-              <div key={index} className="p-2 text-xs font-medium text-slate-700 text-center border-l border-slate-200">
-                {getDayName(date, index)}
-              </div>
-            );
-          })}
-          <div className="p-2 text-xs font-medium text-slate-700 text-center border-l border-slate-200">
-            Koko jakso
+        <div className="grid grid-cols-3 bg-slate-50 border-b border-slate-200">
+          <div className="p-3 text-sm font-medium text-slate-700 text-center border-r border-slate-200">
+            Päivä
+          </div>
+          <div className="p-3 text-sm font-medium text-slate-700 text-center border-r border-slate-200">
+            Päivälle lisäksi
+          </div>
+          <div className="p-3 text-sm font-medium text-slate-700 text-center">
+            Jaksolle lisäksi
           </div>
         </div>
 
-        {/* Lisäksi-rivi */}
-        <div className="grid" style={{ gridTemplateColumns: `80px repeat(${Math.min(planningSettings.periodLength, 7)}, 1fr) 200px` }}>
-          <div className="p-2 flex items-center justify-center bg-slate-100 text-slate-700 border-r border-slate-200">
-            <span className="text-xs font-medium">Tuotteet</span>
-          </div>
-          
-          {/* Päiväkohtaiset lisäksi */}
-          {periodMeals.slice(0, Math.min(planningSettings.periodLength, 7)).map((day, dayIndex) => (
-            <div key={dayIndex} className="p-1 border-l border-slate-200 min-h-20">
-              {/* Kompakti lisäyslomake */}
-              <div className="mb-1">
-                <div className="flex space-x-1 mb-1">
-                  <input
-                    type="text"
-                    placeholder="Tuote..."
-                    value={newDayExtra[day.date] || ''}
-                    onChange={(e) => setNewDayExtra({ ...newDayExtra, [day.date]: e.target.value })}
-                    onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
-                    className="flex-1 px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <button
-                    onClick={() => addExtraToDay(day.date)}
-                    className="bg-blue-600 text-white px-1 py-1 rounded text-xs hover:bg-blue-700 transition-colors duration-200 flex-shrink-0"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Määrä..."
-                  value={newDayExtraQuantity[day.date] || ''}
-                  onChange={(e) => setNewDayExtraQuantity({ ...newDayExtraQuantity, [day.date]: e.target.value })}
-                  onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
-                  className="w-full px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
+        {/* Päivärivit */}
+        {periodMeals.slice(0, Math.min(planningSettings.periodLength, 7)).map((day, dayIndex) => {
+          const date = new Date(day.date);
+          return (
+            <div key={dayIndex} className="grid grid-cols-3 border-b border-slate-200 last:border-b-0">
+              {/* Päivän nimi */}
+              <div className="p-3 flex items-center justify-center bg-slate-50 border-r border-slate-200">
+                <span className="text-sm font-medium text-slate-800">
+                  {getDayName(date, dayIndex)}
+                </span>
               </div>
-              
-              {/* Näytä lisäksi-tuotteet kompaktisti */}
-              <div className="space-y-1 max-h-20 overflow-y-auto">
-                {(day.extras || []).map((extra) => (
-                  <div key={extra.id} className="flex items-center justify-between bg-white rounded p-1 border border-slate-200 group">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs text-slate-800 truncate">{extra.text}</div>
-                      {extra.quantity && (
-                        <div className="text-xs text-slate-600 truncate">({extra.quantity})</div>
-                      )}
-                    </div>
+
+              {/* Päivälle lisäksi */}
+              <div className="p-3 border-r border-slate-200">
+                {/* Lisäyslomake */}
+                <div className="mb-2">
+                  <div className="flex space-x-1 mb-1">
+                    <input
+                      type="text"
+                      placeholder="Tuote..."
+                      value={newDayExtra[day.date] || ''}
+                      onChange={(e) => setNewDayExtra({ ...newDayExtra, [day.date]: e.target.value })}
+                      onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
+                      className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
                     <button
-                      onClick={() => removeExtraFromDay(day.date, extra.id)}
-                      className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-1"
+                      onClick={() => addExtraToDay(day.date)}
+                      className="bg-blue-600 text-white px-2 py-1 rounded text-sm hover:bg-blue-700 transition-colors duration-200 flex-shrink-0"
                     >
-                      <X className="h-3 w-3" />
+                      <Plus className="h-3 w-3" />
                     </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Koko jakson lisäksi */}
-          <div className="p-1 border-l border-slate-200 min-h-20">
-            {/* Lisäyslomake */}
-            <div className="mb-1">
-              <div className="flex space-x-1 mb-1">
-                <input
-                  type="text"
-                  placeholder="Tuote..."
-                  value={newExtraItem}
-                  onChange={(e) => setNewExtraItem(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addExtraItem()}
-                  className="flex-1 px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                />
-                <button
-                  onClick={addExtraItem}
-                  className="bg-green-600 text-white px-1 py-1 rounded text-xs hover:bg-green-700 transition-colors duration-200 flex-shrink-0"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-              </div>
-              <input
-                type="text"
-                placeholder="Määrä..."
-                value={newExtraQuantity}
-                onChange={(e) => setNewExtraQuantity(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addExtraItem()}
-                className="w-full px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
-              />
-            </div>
-            
-            {/* Näytä yleiset lisäksi-tuotteet */}
-            <div className="space-y-1 max-h-20 overflow-y-auto">
-              {periodExtras.map((item) => (
-                <div key={item.id} className="flex items-center justify-between bg-white rounded p-1 border border-slate-200 group">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-slate-800 truncate">{item.text}</div>
-                    {item.quantity && (
-                      <div className="text-xs text-slate-600 truncate">({item.quantity})</div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => removeExtraItem(item.id)}
-                    className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-1"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  <input
+                    type="text"
+                    placeholder="Määrä..."
+                    value={newDayExtraQuantity[day.date] || ''}
+                    onChange={(e) => setNewDayExtraQuantity({ ...newDayExtraQuantity, [day.date]: e.target.value })}
+                    onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
+                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  />
                 </div>
-              ))}
+                
+                {/* Näytä lisäksi-tuotteet */}
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {(day.extras || []).map((extra) => (
+                    <div key={extra.id} className="flex items-center justify-between bg-slate-50 rounded p-2 border border-slate-200 group">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-slate-800 truncate">{extra.text}</div>
+                        {extra.quantity && (
+                          <div className="text-xs text-slate-600 truncate">({extra.quantity})</div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => removeExtraFromDay(day.date, extra.id)}
+                        className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-2"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Jaksolle lisäksi - Näkyy vain ensimmäisellä rivillä */}
+              {dayIndex === 0 && (
+                <div className="p-3" style={{ gridRow: `1 / ${Math.min(planningSettings.periodLength, 7) + 1}` }}>
+                  {/* Lisäyslomake */}
+                  <div className="mb-2">
+                    <div className="flex space-x-1 mb-1">
+                      <input
+                        type="text"
+                        placeholder="Tuote..."
+                        value={newExtraItem}
+                        onChange={(e) => setNewExtraItem(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && addExtraItem()}
+                        className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                      />
+                      <button
+                        onClick={addExtraItem}
+                        className="bg-green-600 text-white px-2 py-1 rounded text-sm hover:bg-green-700 transition-colors duration-200 flex-shrink-0"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Määrä..."
+                      value={newExtraQuantity}
+                      onChange={(e) => setNewExtraQuantity(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && addExtraItem()}
+                      className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                    />
+                  </div>
+                  
+                  {/* Näytä yleiset lisäksi-tuotteet */}
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                    {periodExtras.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between bg-slate-50 rounded p-2 border border-slate-200 group">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-slate-800 truncate">{item.text}</div>
+                          {item.quantity && (
+                            <div className="text-xs text-slate-600 truncate">({item.quantity})</div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => removeExtraItem(item.id)}
+                          className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-2"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {/* Ostoslista */}
