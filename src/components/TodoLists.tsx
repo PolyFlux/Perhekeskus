@@ -68,6 +68,8 @@ const TodoLists: React.FC = () => {
     person2: 'today'
   });
 
+  const dayNames = ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'];
+
   const addTask = (personId: string) => {
     const taskText = newTask[personId]?.trim();
     if (!taskText) return;
@@ -259,6 +261,136 @@ const TodoLists: React.FC = () => {
     setPersonViews({ ...personViews, [personId]: view });
   };
 
+  // Hae viikon päivät
+  const getWeekDays = () => {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Aloita maanantaista
+    startOfWeek.setDate(diff);
+    
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      days.push(date);
+    }
+    return days;
+  };
+
+  // Hae tehtävät tietylle päivälle
+  const getTasksForDay = (person: Person, date: Date) => {
+    return person.tasks.filter(task => {
+      if (task.category === 'today') {
+        // Tämän päivän tehtävät näkyvät vain tänään
+        const today = new Date();
+        return date.toDateString() === today.toDateString();
+      } else if (task.category === 'scheduled' && task.dueDate) {
+        // Ajoitetut tehtävät näkyvät määrättynä päivänä
+        return date.toDateString() === task.dueDate.toDateString();
+      } else if (task.category === 'weekly') {
+        // Viikkotehtävät näkyvät koko viikon
+        return true;
+      }
+      return false;
+    });
+  };
+
+  const isSameDay = (date1: Date, date2: Date) => {
+    return date1.toDateString() === date2.toDateString();
+  };
+
+  const renderWeekCalendar = (person: Person) => {
+    const weekDays = getWeekDays();
+    const today = new Date();
+
+    return (
+      <div className="bg-white rounded-xl border border-slate-200/50 overflow-hidden">
+        {/* Viikon otsikko */}
+        <div className="grid grid-cols-7 bg-slate-50">
+          {weekDays.map((day, index) => (
+            <div key={index} className="p-2 text-center border-r border-slate-200 last:border-r-0">
+              <div className="text-xs font-medium text-slate-600">{dayNames[index]}</div>
+              <div className={`text-sm font-semibold mt-1 ${
+                isSameDay(day, today) 
+                  ? 'bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto' 
+                  : 'text-slate-800'
+              }`}>
+                {day.getDate()}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Viikon tehtävät */}
+        <div className="grid grid-cols-7 min-h-32">
+          {weekDays.map((day, dayIndex) => {
+            const dayTasks = getTasksForDay(person, day);
+            const isToday = isSameDay(day, today);
+
+            return (
+              <div 
+                key={dayIndex} 
+                className={`p-2 border-r border-slate-200 last:border-r-0 min-h-32 ${
+                  isToday ? 'bg-blue-50' : 'hover:bg-slate-50'
+                } transition-colors duration-200`}
+              >
+                <div className="space-y-1">
+                  {dayTasks.map(task => (
+                    <div
+                      key={task.id}
+                      className={`text-xs p-1 rounded border transition-all duration-200 ${
+                        task.completed 
+                          ? 'bg-slate-100 border-slate-200 opacity-60 line-through' 
+                          : task.category === 'today'
+                          ? 'bg-blue-100 border-blue-200 text-blue-800'
+                          : task.category === 'scheduled'
+                          ? isTaskOverdue(task) 
+                            ? 'bg-red-100 border-red-200 text-red-800'
+                            : 'bg-purple-100 border-purple-200 text-purple-800'
+                          : 'bg-green-100 border-green-200 text-green-800'
+                      } ${task.isShared ? 'border-l-2 border-l-orange-400' : ''}`}
+                      title={task.text}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => toggleTask(person.id, task.id)}
+                          className={`flex-shrink-0 w-3 h-3 rounded border flex items-center justify-center ${
+                            task.completed
+                              ? 'bg-green-500 border-green-500 text-white'
+                              : 'border-slate-400 hover:border-green-500'
+                          }`}
+                        >
+                          {task.completed && <Check className="h-2 w-2" />}
+                        </button>
+                        <div className={`w-2 h-2 rounded-full ${getPriorityColor(task.priority)}`} />
+                        <span className="truncate flex-1">{task.text}</span>
+                        {task.isShared && (
+                          <Users className="h-2 w-2 text-orange-600 flex-shrink-0" />
+                        )}
+                      </div>
+                      {task.isShared && task.completed && task.completedBy && (
+                        <div className="text-xs text-green-600 mt-1 truncate">
+                          ✓ {task.completedBy}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {dayTasks.length === 0 && (
+                    <div className="text-xs text-slate-400 text-center py-2">
+                      Ei tehtäviä
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Otsikko */}
@@ -321,7 +453,7 @@ const TodoLists: React.FC = () => {
         </div>
       </div>
 
-      {/* Yksittäiset tehtävälistat */}
+      {/* Yksittäiset tehtävälistat - Rinnatuslayout palautettu */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {people.map(person => {
           const currentView = personViews[person.id] || 'today';
@@ -389,221 +521,20 @@ const TodoLists: React.FC = () => {
                 </div>
               </div>
 
-              {/* Tehtävälista */}
-              <div className="space-y-3 max-h-96 overflow-y-auto mb-6">
-                {currentView === 'week' && (
-                  <>
-                    {/* Tämän päivän tehtävät */}
-                    {person.tasks.filter(task => task.category === 'today').length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center space-x-2">
-                          <Calendar className="h-4 w-4 text-blue-600" />
-                          <span>Tämän päivän tehtävät</span>
-                        </h4>
-                        <div className="space-y-2">
-                          {person.tasks.filter(task => task.category === 'today').map(task => (
-                            <div
-                              key={task.id}
-                              className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-200 ${
-                                task.completed 
-                                  ? 'bg-slate-50 border-slate-200 opacity-60' 
-                                  : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
-                              } ${task.isShared ? 'border-l-4 border-l-orange-400' : ''}`}
-                            >
-                              <button
-                                onClick={() => toggleTask(person.id, task.id)}
-                                className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
-                                  task.completed
-                                    ? 'bg-green-500 border-green-500 text-white'
-                                    : 'border-slate-300 hover:border-green-500'
-                                }`}
-                              >
-                                {task.completed && <Check className="h-3 w-3" />}
-                              </button>
-                              
-                              <div className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)}`} />
-                              
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center space-x-2">
-                                  <span className={`${task.completed ? 'line-through text-slate-500' : 'text-slate-800'}`}>
-                                    {task.text}
-                                  </span>
-                                  {task.isShared && (
-                                    <div className="flex items-center space-x-1">
-                                      <Users className="h-3 w-3 text-orange-600" />
-                                      <span className="text-xs text-orange-600 bg-orange-100 px-1 py-0.5 rounded">
-                                        Kumpi kerkeää
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                                {task.isShared && task.completed && task.completedBy && (
-                                  <div className="text-xs text-green-600 mt-1">
-                                    ✓ Tehty: {task.completedBy}
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <button
-                                onClick={() => deleteTask(person.id, task.id)}
-                                className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Ajoitetut tehtävät */}
-                    {person.tasks.filter(task => task.category === 'scheduled').length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center space-x-2">
-                          <Clock className="h-4 w-4 text-purple-600" />
-                          <span>Ajoitetut tehtävät</span>
-                        </h4>
-                        <div className="space-y-2">
-                          {person.tasks.filter(task => task.category === 'scheduled').map(task => (
-                            <div
-                              key={task.id}
-                              className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-200 ${
-                                task.completed 
-                                  ? 'bg-slate-50 border-slate-200 opacity-60' 
-                                  : isTaskOverdue(task)
-                                  ? 'bg-red-50 border-red-200'
-                                  : 'bg-purple-50 border-purple-200 hover:bg-purple-100'
-                              } ${task.isShared ? 'border-l-4 border-l-orange-400' : ''}`}
-                            >
-                              <button
-                                onClick={() => toggleTask(person.id, task.id)}
-                                className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
-                                  task.completed
-                                    ? 'bg-green-500 border-green-500 text-white'
-                                    : 'border-slate-300 hover:border-green-500'
-                                }`}
-                              >
-                                {task.completed && <Check className="h-3 w-3" />}
-                              </button>
-                              
-                              <div className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)}`} />
-                              
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center space-x-2">
-                                  <span className={`${task.completed ? 'line-through text-slate-500' : 'text-slate-800'}`}>
-                                    {task.text}
-                                  </span>
-                                  {task.isShared && (
-                                    <div className="flex items-center space-x-1">
-                                      <Users className="h-3 w-3 text-orange-600" />
-                                      <span className="text-xs text-orange-600 bg-orange-100 px-1 py-0.5 rounded">
-                                        Kumpi kerkeää
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                                {task.dueDate && (
-                                  <div className={`text-xs mt-1 flex items-center space-x-1 ${
-                                    isTaskOverdue(task) ? 'text-red-600 font-medium' : 
-                                    isTaskDueToday(task) ? 'text-blue-600 font-medium' : 'text-slate-600'
-                                  }`}>
-                                    <Calendar className="h-3 w-3" />
-                                    <span>{formatDueDate(task.dueDate)}</span>
-                                    {isTaskOverdue(task) && <span>(Myöhässä)</span>}
-                                    {isTaskDueToday(task) && <span>(Tänään)</span>}
-                                  </div>
-                                )}
-                                {task.isShared && task.completed && task.completedBy && (
-                                  <div className="text-xs text-green-600 mt-1">
-                                    ✓ Tehty: {task.completedBy}
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <button
-                                onClick={() => deleteTask(person.id, task.id)}
-                                className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Viikon aikana hoidettavat */}
-                    {person.tasks.filter(task => task.category === 'weekly').length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center space-x-2">
-                          <Clock className="h-4 w-4 text-green-600" />
-                          <span>Viikon aikana hoidettavat</span>
-                        </h4>
-                        <div className="space-y-2">
-                          {person.tasks.filter(task => task.category === 'weekly').map(task => (
-                            <div
-                              key={task.id}
-                              className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-200 ${
-                                task.completed 
-                                  ? 'bg-slate-50 border-slate-200 opacity-60' 
-                                  : 'bg-green-50 border-green-200 hover:bg-green-100'
-                              } ${task.isShared ? 'border-l-4 border-l-orange-400' : ''}`}
-                            >
-                              <button
-                                onClick={() => toggleTask(person.id, task.id)}
-                                className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
-                                  task.completed
-                                    ? 'bg-green-500 border-green-500 text-white'
-                                    : 'border-slate-300 hover:border-green-500'
-                                }`}
-                              >
-                                {task.completed && <Check className="h-3 w-3" />}
-                              </button>
-                              
-                              <div className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)}`} />
-                              
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center space-x-2">
-                                  <span className={`${task.completed ? 'line-through text-slate-500' : 'text-slate-800'}`}>
-                                    {task.text}
-                                  </span>
-                                  {task.isShared && (
-                                    <div className="flex items-center space-x-1">
-                                      <Users className="h-3 w-3 text-orange-600" />
-                                      <span className="text-xs text-orange-600 bg-orange-100 px-1 py-0.5 rounded">
-                                        Kumpi kerkeää
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="text-xs text-green-600 mt-1 flex items-center space-x-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>Viikon sisällä</span>
-                                </div>
-                                {task.isShared && task.completed && task.completedBy && (
-                                  <div className="text-xs text-green-600 mt-1">
-                                    ✓ Tehty: {task.completedBy}
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <button
-                                onClick={() => deleteTask(person.id, task.id)}
-                                className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Tämän päivän näkymä */}
-                {currentView === 'today' && (
-                  <>
+              {/* Tehtävälista tai kalenterinäkymä */}
+              <div className="mb-6">
+                {currentView === 'week' ? (
+                  // Kalenterimallinen viikkonäkymä
+                  <div className="space-y-4">
+                    <h4 className="text-md font-semibold text-slate-800 flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-blue-600" />
+                      <span>Viikkokalenteri</span>
+                    </h4>
+                    {renderWeekCalendar(person)}
+                  </div>
+                ) : (
+                  // Tämän päivän listanäkymä
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
                     {getFilteredTasks(person, currentView).map(task => (
                       <div
                         key={task.id}
@@ -655,18 +586,13 @@ const TodoLists: React.FC = () => {
                         </button>
                       </div>
                     ))}
-                  </>
-                )}
-                
-                {getFilteredTasks(person, currentView).length === 0 && (
-                  <div className="text-center py-8 text-slate-500">
-                    <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>
-                      {currentView === 'today' 
-                        ? 'Ei tehtäviä tänään' 
-                        : 'Ei tehtäviä tällä viikolla'
-                      }
-                    </p>
+                    
+                    {getFilteredTasks(person, currentView).length === 0 && (
+                      <div className="text-center py-8 text-slate-500">
+                        <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p>Ei tehtäviä tänään</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
