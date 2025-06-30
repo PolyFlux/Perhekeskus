@@ -5,7 +5,8 @@ interface Event {
   id: number;
   title: string;
   date: Date;
-  time: string;
+  startTime: string;
+  endTime: string;
   categoryId: string;
   description?: string;
   location?: string;
@@ -21,7 +22,8 @@ interface EventCategory {
 interface NewEvent {
   title: string;
   date: string;
-  time: string;
+  startTime: string;
+  endTime: string;
   categoryId: string;
   description: string;
   location: string;
@@ -54,16 +56,17 @@ const CalendarView: React.FC = () => {
   ]);
 
   const [events, setEvents] = useState<Event[]>([
-    { id: 1, title: 'Lääkäriaika', date: new Date(2025, 0, 15), time: '10:00', categoryId: 'health', description: 'Vuositarkastus', location: 'Terveysasema' },
-    { id: 2, title: 'Jalkapalloharjoitukset', date: new Date(2025, 0, 16), time: '18:00', categoryId: 'sports', description: 'Viikkoharjoitukset', location: 'Urheilukeskus' },
-    { id: 3, title: 'Perhepäivällinen', date: new Date(2025, 0, 18), time: '19:00', categoryId: 'family', description: 'Isovanhempien kanssa', location: 'Koti' },
-    { id: 4, title: 'Koulukokous', date: new Date(2025, 0, 20), time: '15:00', categoryId: 'school', description: 'Vanhempainilta', location: 'Koulu' },
+    { id: 1, title: 'Lääkäriaika', date: new Date(2025, 0, 15), startTime: '10:00', endTime: '10:30', categoryId: 'health', description: 'Vuositarkastus', location: 'Terveysasema' },
+    { id: 2, title: 'Jalkapalloharjoitukset', date: new Date(2025, 0, 16), startTime: '18:00', endTime: '19:30', categoryId: 'sports', description: 'Viikkoharjoitukset', location: 'Urheilukeskus' },
+    { id: 3, title: 'Perhepäivällinen', date: new Date(2025, 0, 18), startTime: '19:00', endTime: '21:00', categoryId: 'family', description: 'Isovanhempien kanssa', location: 'Koti' },
+    { id: 4, title: 'Koulukokous', date: new Date(2025, 0, 20), startTime: '15:00', endTime: '16:00', categoryId: 'school', description: 'Vanhempainilta', location: 'Koulu' },
   ]);
 
   const [newEvent, setNewEvent] = useState<NewEvent>({
     title: '',
     date: new Date().toISOString().split('T')[0],
-    time: '12:00',
+    startTime: '12:00',
+    endTime: '13:00',
     categoryId: 'other',
     description: '',
     location: ''
@@ -101,6 +104,34 @@ const CalendarView: React.FC = () => {
     return categories.find(cat => cat.id === categoryId) || categories.find(cat => cat.id === 'other')!;
   };
 
+  // Validoi että päättymisaika on alkamisajan jälkeen
+  const validateEventTimes = (startTime: string, endTime: string): boolean => {
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    return end > start;
+  };
+
+  // Automaattisesti säädä päättymisaikaa kun alkamisaikaa muutetaan
+  const handleStartTimeChange = (startTime: string) => {
+    setNewEvent(prev => {
+      const newStartTime = startTime;
+      let newEndTime = prev.endTime;
+      
+      // Jos päättymisaika on ennen alkamisaikaa, lisää tunti alkamisaikaan
+      if (!validateEventTimes(newStartTime, prev.endTime)) {
+        const start = new Date(`2000-01-01T${newStartTime}`);
+        start.setHours(start.getHours() + 1);
+        newEndTime = start.toTimeString().slice(0, 5);
+      }
+      
+      return {
+        ...prev,
+        startTime: newStartTime,
+        endTime: newEndTime
+      };
+    });
+  };
+
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate);
     newDate.setMonth(currentDate.getMonth() + (direction === 'next' ? 1 : -1));
@@ -115,13 +146,18 @@ const CalendarView: React.FC = () => {
 
   const addEvent = () => {
     if (!newEvent.title.trim()) return;
+    if (!validateEventTimes(newEvent.startTime, newEvent.endTime)) {
+      alert('Päättymisajan tulee olla alkamisajan jälkeen');
+      return;
+    }
 
     const eventDate = new Date(newEvent.date);
     const event: Event = {
       id: Date.now(),
       title: newEvent.title.trim(),
       date: eventDate,
-      time: newEvent.time,
+      startTime: newEvent.startTime,
+      endTime: newEvent.endTime,
       categoryId: newEvent.categoryId,
       description: newEvent.description.trim() || undefined,
       location: newEvent.location.trim() || undefined
@@ -133,7 +169,8 @@ const CalendarView: React.FC = () => {
     setNewEvent({
       title: '',
       date: new Date().toISOString().split('T')[0],
-      time: '12:00',
+      startTime: '12:00',
+      endTime: '13:00',
       categoryId: 'other',
       description: '',
       location: ''
@@ -256,6 +293,10 @@ const CalendarView: React.FC = () => {
     return events.filter(event => isSameDay(event.date, date));
   };
 
+  const formatEventTime = (event: Event) => {
+    return `${event.startTime}-${event.endTime}`;
+  };
+
   const renderMonthView = () => {
     const days = getDaysInMonth(currentDate);
     
@@ -293,7 +334,7 @@ const CalendarView: React.FC = () => {
                       <div
                         key={event.id}
                         className={`${category.color} text-white text-xs p-1 rounded truncate group relative cursor-pointer`}
-                        title={`${event.title} - ${event.time}${event.location ? ` @ ${event.location}` : ''} (${category.name})`}
+                        title={`${event.title} - ${formatEventTime(event)}${event.location ? ` @ ${event.location}` : ''} (${category.name})`}
                       >
                         <span>{event.title}</span>
                         <button
@@ -349,7 +390,7 @@ const CalendarView: React.FC = () => {
               </div>
               {days.map((day, dayIndex) => {
                 const dayEvents = getEventsForDay(day).filter(event => {
-                  const eventHour = parseInt(event.time.split(':')[0]);
+                  const eventHour = parseInt(event.startTime.split(':')[0]);
                   return eventHour === hour;
                 });
                 
@@ -361,9 +402,10 @@ const CalendarView: React.FC = () => {
                         <div
                           key={event.id}
                           className={`${category.color} text-white text-xs p-1 rounded mb-1 group relative cursor-pointer`}
-                          title={`${event.title}${event.location ? ` @ ${event.location}` : ''} (${category.name})`}
+                          title={`${event.title} - ${formatEventTime(event)}${event.location ? ` @ ${event.location}` : ''} (${category.name})`}
                         >
-                          <span>{event.title}</span>
+                          <div>{event.title}</div>
+                          <div className="text-xs opacity-75">{formatEventTime(event)}</div>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -492,7 +534,7 @@ const CalendarView: React.FC = () => {
                       </span>
                       <span className="flex items-center space-x-1">
                         <Clock className="h-3 w-3" />
-                        <span>{event.time}</span>
+                        <span>{formatEventTime(event)}</span>
                       </span>
                       {event.location && (
                         <span className="flex items-center space-x-1">
@@ -763,29 +805,49 @@ const CalendarView: React.FC = () => {
                 />
               </div>
 
-              {/* Päivämäärä ja aika */}
+              {/* Päivämäärä */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Päivämäärä *
+                </label>
+                <input
+                  type="date"
+                  value={newEvent.date}
+                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Alkamis- ja päättymisaika */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Päivämäärä *
+                    Alkamisaika *
                   </label>
                   <input
-                    type="date"
-                    value={newEvent.date}
-                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                    type="time"
+                    value={newEvent.startTime}
+                    onChange={(e) => handleStartTimeChange(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Aika *
+                    Päättymisaika *
                   </label>
                   <input
                     type="time"
-                    value={newEvent.time}
-                    onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={newEvent.endTime}
+                    onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      !validateEventTimes(newEvent.startTime, newEvent.endTime) 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-300'
+                    }`}
                   />
+                  {!validateEventTimes(newEvent.startTime, newEvent.endTime) && (
+                    <p className="text-red-600 text-xs mt-1">Päättymisajan tulee olla alkamisajan jälkeen</p>
+                  )}
                 </div>
               </div>
 
@@ -842,14 +904,16 @@ const CalendarView: React.FC = () => {
               </div>
 
               {/* Esikatselu */}
-              {newEvent.title && (
+              {newEvent.title && validateEventTimes(newEvent.startTime, newEvent.endTime) && (
                 <div className="bg-slate-50 rounded-lg p-3">
                   <h4 className="text-sm font-medium text-slate-800 mb-2">Esikatselu:</h4>
                   <div className={`${getCategoryById(newEvent.categoryId).color} text-white text-sm p-2 rounded inline-block`}>
                     {newEvent.title}
                   </div>
                   <div className="text-xs text-slate-600 mt-2 flex items-center space-x-2">
-                    <span>{new Date(newEvent.date).toLocaleDateString('fi-FI')} klo {newEvent.time}</span>
+                    <span>{new Date(newEvent.date).toLocaleDateString('fi-FI')}</span>
+                    <span>•</span>
+                    <span>{newEvent.startTime}-{newEvent.endTime}</span>
                     <span>•</span>
                     <span>{getCategoryById(newEvent.categoryId).name}</span>
                     {newEvent.location && (
@@ -872,9 +936,9 @@ const CalendarView: React.FC = () => {
               </button>
               <button
                 onClick={addEvent}
-                disabled={!newEvent.title.trim()}
+                disabled={!newEvent.title.trim() || !validateEventTimes(newEvent.startTime, newEvent.endTime)}
                 className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
-                  newEvent.title.trim()
+                  newEvent.title.trim() && validateEventTimes(newEvent.startTime, newEvent.endTime)
                     ? 'bg-blue-600 text-white hover:bg-blue-700'
                     : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                 }`}
