@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, X, User, Calendar, Clock, AlertCircle, UserPlus, Trash2, Users } from 'lucide-react';
+import { Plus, Check, X, User, Calendar, Clock, AlertCircle, UserPlus, Trash2, Users, Edit2, Eye } from 'lucide-react';
 
 interface Task {
   id: number;
@@ -10,7 +10,9 @@ interface Task {
   category: string;
   assignedTo: string[];
   assignmentType: 'individual' | 'shared';
-  timeframe: 'specific' | 'weekly'; // Uusi kenttä
+  timeframe: 'specific' | 'weekly';
+  description?: string;
+  createdAt: Date;
 }
 
 interface PersonViewState {
@@ -23,16 +25,98 @@ const TodoLists: React.FC = () => {
   const [newPersonName, setNewPersonName] = useState('');
 
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, title: 'Ruokaostokset', completed: false, priority: 'high', dueDate: new Date(), category: 'Kotitalous', assignedTo: ['Äiti'], assignmentType: 'individual', timeframe: 'specific' },
-    { id: 2, title: 'Hae kuivapesu', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 86400000), category: 'Asiointi', assignedTo: ['Isi'], assignmentType: 'individual', timeframe: 'specific' },
-    { id: 3, title: 'Työprojektin deadline', completed: false, priority: 'high', dueDate: new Date(Date.now() + 604800000), category: 'Työ', assignedTo: ['Isi'], assignmentType: 'individual', timeframe: 'specific' },
-    { id: 4, title: 'Synttärilahjan osto', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 1209600000), category: 'Perhe', assignedTo: ['Äiti'], assignmentType: 'individual', timeframe: 'specific' },
-    { id: 5, title: 'Siivoa olohuone', completed: false, priority: 'medium', dueDate: new Date(), category: 'Kotitalous', assignedTo: ['Isi', 'Äiti'], assignmentType: 'shared', timeframe: 'specific' },
-    { id: 6, title: 'Järjestä vaatekaappi', completed: false, priority: 'low', category: 'Kotitalous', assignedTo: ['Äiti'], assignmentType: 'individual', timeframe: 'weekly' },
-    { id: 7, title: 'Vie roskat', completed: false, priority: 'medium', category: 'Kotitalous', assignedTo: ['Isi', 'Äiti'], assignmentType: 'shared', timeframe: 'weekly' },
+    { 
+      id: 1, 
+      title: 'Ruokaostokset', 
+      completed: false, 
+      priority: 'high', 
+      dueDate: new Date(), 
+      category: 'Kotitalous', 
+      assignedTo: ['Äiti'], 
+      assignmentType: 'individual', 
+      timeframe: 'specific',
+      description: 'Muista ostaa myös tuoreet vihannekset ja hedelmät',
+      createdAt: new Date()
+    },
+    { 
+      id: 2, 
+      title: 'Hae kuivapesu', 
+      completed: false, 
+      priority: 'medium', 
+      dueDate: new Date(Date.now() + 86400000), 
+      category: 'Asiointi', 
+      assignedTo: ['Isi'], 
+      assignmentType: 'individual', 
+      timeframe: 'specific',
+      description: 'Kuivapesu on valmis huomenna iltapäivällä',
+      createdAt: new Date()
+    },
+    { 
+      id: 3, 
+      title: 'Työprojektin deadline', 
+      completed: false, 
+      priority: 'high', 
+      dueDate: new Date(Date.now() + 604800000), 
+      category: 'Työ', 
+      assignedTo: ['Isi'], 
+      assignmentType: 'individual', 
+      timeframe: 'specific',
+      createdAt: new Date()
+    },
+    { 
+      id: 4, 
+      title: 'Synttärilahjan osto', 
+      completed: false, 
+      priority: 'medium', 
+      dueDate: new Date(Date.now() + 1209600000), 
+      category: 'Perhe', 
+      assignedTo: ['Äiti'], 
+      assignmentType: 'individual', 
+      timeframe: 'specific',
+      createdAt: new Date()
+    },
+    { 
+      id: 5, 
+      title: 'Siivoa olohuone', 
+      completed: false, 
+      priority: 'medium', 
+      dueDate: new Date(), 
+      category: 'Kotitalous', 
+      assignedTo: ['Isi', 'Äiti'], 
+      assignmentType: 'shared', 
+      timeframe: 'specific',
+      description: 'Imuroi matot ja pyyhi pölyt',
+      createdAt: new Date()
+    },
+    { 
+      id: 6, 
+      title: 'Järjestä vaatekaappi', 
+      completed: false, 
+      priority: 'low', 
+      category: 'Kotitalous', 
+      assignedTo: ['Äiti'], 
+      assignmentType: 'individual', 
+      timeframe: 'weekly',
+      description: 'Lajittele talvi- ja kesävaatteet',
+      createdAt: new Date()
+    },
+    { 
+      id: 7, 
+      title: 'Vie roskat', 
+      completed: false, 
+      priority: 'medium', 
+      category: 'Kotitalous', 
+      assignedTo: ['Isi', 'Äiti'], 
+      assignmentType: 'shared', 
+      timeframe: 'weekly',
+      createdAt: new Date()
+    },
   ]);
 
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isEditingTask, setIsEditingTask] = useState(false);
   const [personViews, setPersonViews] = useState<PersonViewState>({
     'Äiti': 'today',
     'Isi': 'today'
@@ -46,7 +130,20 @@ const TodoLists: React.FC = () => {
     assignmentType: 'individual' as 'individual' | 'shared',
     assignedTo: ['Äiti'],
     selectedPeople: [] as string[],
-    timeframe: 'specific' as 'specific' | 'weekly'
+    timeframe: 'specific' as 'specific' | 'weekly',
+    description: ''
+  });
+
+  const [editingTask, setEditingTask] = useState({
+    title: '',
+    priority: 'medium' as 'low' | 'medium' | 'high',
+    dueDate: '',
+    category: 'Kotitalous',
+    assignmentType: 'individual' as 'individual' | 'shared',
+    assignedTo: [] as string[],
+    selectedPeople: [] as string[],
+    timeframe: 'specific' as 'specific' | 'weekly',
+    description: ''
   });
 
   const categories = ['Kotitalous', 'Asiointi', 'Urheilu', 'Koulu', 'Terveys', 'Työ', 'Perhe', 'Muu'];
@@ -70,6 +167,71 @@ const TodoLists: React.FC = () => {
   ];
 
   const dayNames = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai', 'Sunnuntai'];
+
+  const openTaskDetail = (task: Task) => {
+    setSelectedTask(task);
+    setEditingTask({
+      title: task.title,
+      priority: task.priority,
+      dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : '',
+      category: task.category,
+      assignmentType: task.assignmentType,
+      assignedTo: [...task.assignedTo],
+      selectedPeople: task.assignmentType === 'shared' ? [...task.assignedTo] : [],
+      timeframe: task.timeframe,
+      description: task.description || ''
+    });
+    setIsEditingTask(false);
+    setShowTaskDetailModal(true);
+  };
+
+  const startEditingTask = () => {
+    setIsEditingTask(true);
+  };
+
+  const cancelEditingTask = () => {
+    if (selectedTask) {
+      setEditingTask({
+        title: selectedTask.title,
+        priority: selectedTask.priority,
+        dueDate: selectedTask.dueDate ? selectedTask.dueDate.toISOString().split('T')[0] : '',
+        category: selectedTask.category,
+        assignmentType: selectedTask.assignmentType,
+        assignedTo: [...selectedTask.assignedTo],
+        selectedPeople: selectedTask.assignmentType === 'shared' ? [...selectedTask.assignedTo] : [],
+        timeframe: selectedTask.timeframe,
+        description: selectedTask.description || ''
+      });
+    }
+    setIsEditingTask(false);
+  };
+
+  const saveTaskChanges = () => {
+    if (!selectedTask || !editingTask.title.trim()) return;
+
+    let assignedTo: string[];
+    if (editingTask.assignmentType === 'individual') {
+      assignedTo = [editingTask.assignedTo[0] || people[0]];
+    } else {
+      assignedTo = editingTask.selectedPeople.length > 0 ? editingTask.selectedPeople : people;
+    }
+
+    const updatedTask: Task = {
+      ...selectedTask,
+      title: editingTask.title.trim(),
+      priority: editingTask.priority,
+      dueDate: editingTask.timeframe === 'specific' && editingTask.dueDate ? new Date(editingTask.dueDate) : undefined,
+      category: editingTask.category,
+      assignmentType: editingTask.assignmentType,
+      assignedTo: assignedTo,
+      timeframe: editingTask.timeframe,
+      description: editingTask.description.trim() || undefined
+    };
+
+    setTasks(tasks.map(task => task.id === selectedTask.id ? updatedTask : task));
+    setSelectedTask(updatedTask);
+    setIsEditingTask(false);
+  };
 
   const addPerson = () => {
     if (!newPersonName.trim()) return;
@@ -138,7 +300,9 @@ const TodoLists: React.FC = () => {
       category: newTask.category,
       assignedTo: assignedTo,
       assignmentType: newTask.assignmentType,
-      timeframe: newTask.timeframe
+      timeframe: newTask.timeframe,
+      description: newTask.description.trim() || undefined,
+      createdAt: new Date()
     };
 
     setTasks([...tasks, task]);
@@ -150,7 +314,8 @@ const TodoLists: React.FC = () => {
       assignmentType: 'individual',
       assignedTo: [people[0] || 'Äiti'],
       selectedPeople: [],
-      timeframe: 'specific'
+      timeframe: 'specific',
+      description: ''
     });
     setShowAddTaskModal(false);
   };
@@ -159,10 +324,21 @@ const TodoLists: React.FC = () => {
     setTasks(tasks.map(task => 
       task.id === taskId ? { ...task, completed: !task.completed } : task
     ));
+    
+    // Päivitä myös valittu tehtävä jos se on auki
+    if (selectedTask && selectedTask.id === taskId) {
+      setSelectedTask(prev => prev ? { ...prev, completed: !prev.completed } : null);
+    }
   };
 
   const deleteTask = (taskId: number) => {
     setTasks(tasks.filter(task => task.id !== taskId));
+    
+    // Sulje modaali jos poistettu tehtävä oli auki
+    if (selectedTask && selectedTask.id === taskId) {
+      setShowTaskDetailModal(false);
+      setSelectedTask(null);
+    }
   };
 
   const isToday = (date: Date) => {
@@ -286,14 +462,124 @@ const TodoLists: React.FC = () => {
     return task.assignedTo[0];
   };
 
-  const togglePersonSelection = (person: string) => {
-    setNewTask(prev => ({
-      ...prev,
-      selectedPeople: prev.selectedPeople.includes(person)
-        ? prev.selectedPeople.filter(p => p !== person)
-        : [...prev.selectedPeople, person]
-    }));
+  const togglePersonSelection = (person: string, isEditing: boolean = false) => {
+    if (isEditing) {
+      setEditingTask(prev => ({
+        ...prev,
+        selectedPeople: prev.selectedPeople.includes(person)
+          ? prev.selectedPeople.filter(p => p !== person)
+          : [...prev.selectedPeople, person]
+      }));
+    } else {
+      setNewTask(prev => ({
+        ...prev,
+        selectedPeople: prev.selectedPeople.includes(person)
+          ? prev.selectedPeople.filter(p => p !== person)
+          : [...prev.selectedPeople, person]
+      }));
+    }
   };
+
+  const renderTaskItem = (task: Task, showDeleteButton: boolean = true) => (
+    <div
+      key={task.id}
+      className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-200 group cursor-pointer ${
+        task.completed 
+          ? 'bg-slate-50 border-slate-200 opacity-60' 
+          : task.timeframe === 'weekly'
+            ? 'bg-purple-50 border-purple-200 hover:bg-purple-100'
+            : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+      }`}
+      onClick={() => openTaskDetail(task)}
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleTask(task.id);
+        }}
+        className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
+          task.completed
+            ? 'bg-green-500 border-green-500 text-white'
+            : 'border-slate-300 hover:border-green-500'
+        }`}
+      >
+        {task.completed && <Check className="h-3 w-3" />}
+      </button>
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center space-x-2 mb-1">
+          <span className={`font-medium truncate ${
+            task.completed ? 'line-through text-slate-500' : 'text-slate-800'
+          }`}>
+            {task.title}
+          </span>
+          <span className={`px-2 py-1 rounded-full text-xs border ${priorityColors[task.priority]}`}>
+            {priorityLabels[task.priority]}
+          </span>
+          {task.assignmentType === 'shared' && (
+            <span className="flex items-center space-x-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+              <Users className="h-3 w-3" />
+              <span>Jaettu</span>
+            </span>
+          )}
+          {task.timeframe === 'weekly' && (
+            <span className="flex items-center space-x-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
+              <Clock className="h-3 w-3" />
+              <span>Viikko</span>
+            </span>
+          )}
+        </div>
+        <div className="flex items-center space-x-3 text-xs text-slate-600">
+          <span className="bg-slate-200 px-2 py-1 rounded-full">
+            {task.category}
+          </span>
+          {task.dueDate && (
+            <span className={`flex items-center space-x-1 ${
+              task.dueDate < new Date() && !task.completed ? 'text-red-600 font-medium' : ''
+            }`}>
+              <Calendar className="h-3 w-3" />
+              <span>{formatDate(task.dueDate)}</span>
+            </span>
+          )}
+          {task.timeframe === 'weekly' && (
+            <span className="text-purple-600">
+              Hoidettava viikon aikana
+            </span>
+          )}
+          {task.assignmentType === 'shared' && (
+            <span className="text-blue-600">
+              Vastuussa: {formatAssignees(task)}
+            </span>
+          )}
+        </div>
+      </div>
+      
+      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            openTaskDetail(task);
+          }}
+          className="flex-shrink-0 text-slate-400 hover:text-blue-500 transition-colors duration-200"
+          title="Näytä tiedot"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+        {showDeleteButton && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteTask(task.id);
+            }}
+            className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200"
+            title="Poista tehtävä"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   const renderWeekView = (person: string) => {
     const weekDays = getWeekDays();
@@ -325,14 +611,18 @@ const TodoLists: React.FC = () => {
                 .map(task => (
                   <div
                     key={task.id}
-                    className={`flex items-center space-x-2 p-2 rounded border transition-all duration-200 group ${
+                    className={`flex items-center space-x-2 p-2 rounded border transition-all duration-200 group cursor-pointer ${
                       task.completed 
                         ? 'bg-white border-slate-200 opacity-60' 
                         : 'bg-white border-purple-200 hover:border-purple-300'
                     }`}
+                    onClick={() => openTaskDetail(task)}
                   >
                     <button
-                      onClick={() => toggleTask(task.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTask(task.id);
+                      }}
                       className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
                         task.completed
                           ? 'bg-green-500 border-green-500 text-white'
@@ -367,12 +657,28 @@ const TodoLists: React.FC = () => {
                       </div>
                     </div>
                     
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openTaskDetail(task);
+                        }}
+                        className="flex-shrink-0 text-slate-400 hover:text-blue-500 transition-colors duration-200"
+                        title="Näytä tiedot"
+                      >
+                        <Eye className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteTask(task.id);
+                        }}
+                        className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200"
+                        title="Poista tehtävä"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
                 ))}
             </div>
@@ -412,14 +718,18 @@ const TodoLists: React.FC = () => {
                     .map(task => (
                       <div
                         key={task.id}
-                        className={`flex items-center space-x-2 p-2 rounded border transition-all duration-200 group ${
+                        className={`flex items-center space-x-2 p-2 rounded border transition-all duration-200 group cursor-pointer ${
                           task.completed 
                             ? 'bg-white border-slate-200 opacity-60' 
                             : 'bg-white border-slate-200 hover:border-slate-300'
                         }`}
+                        onClick={() => openTaskDetail(task)}
                       >
                         <button
-                          onClick={() => toggleTask(task.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleTask(task.id);
+                          }}
                           className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
                             task.completed
                               ? 'bg-green-500 border-green-500 text-white'
@@ -453,12 +763,28 @@ const TodoLists: React.FC = () => {
                           </div>
                         </div>
                         
-                        <button
-                          onClick={() => deleteTask(task.id)}
-                          className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openTaskDetail(task);
+                            }}
+                            className="flex-shrink-0 text-slate-400 hover:text-blue-500 transition-colors duration-200"
+                            title="Näytä tiedot"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteTask(task.id);
+                            }}
+                            className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200"
+                            title="Poista tehtävä"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -507,84 +833,7 @@ const TodoLists: React.FC = () => {
               
               return 0;
             })
-            .map(task => (
-              <div
-                key={task.id}
-                className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-200 group ${
-                  task.completed 
-                    ? 'bg-slate-50 border-slate-200 opacity-60' 
-                    : task.timeframe === 'weekly'
-                      ? 'bg-purple-50 border-purple-200 hover:bg-purple-100'
-                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                <button
-                  onClick={() => toggleTask(task.id)}
-                  className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
-                    task.completed
-                      ? 'bg-green-500 border-green-500 text-white'
-                      : 'border-slate-300 hover:border-green-500'
-                  }`}
-                >
-                  {task.completed && <Check className="h-3 w-3" />}
-                </button>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className={`font-medium truncate ${
-                      task.completed ? 'line-through text-slate-500' : 'text-slate-800'
-                    }`}>
-                      {task.title}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-xs border ${priorityColors[task.priority]}`}>
-                      {priorityLabels[task.priority]}
-                    </span>
-                    {task.assignmentType === 'shared' && (
-                      <span className="flex items-center space-x-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                        <Users className="h-3 w-3" />
-                        <span>Jaettu</span>
-                      </span>
-                    )}
-                    {task.timeframe === 'weekly' && (
-                      <span className="flex items-center space-x-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
-                        <Clock className="h-3 w-3" />
-                        <span>Viikko</span>
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-3 text-xs text-slate-600">
-                    <span className="bg-slate-200 px-2 py-1 rounded-full">
-                      {task.category}
-                    </span>
-                    {task.dueDate && (
-                      <span className={`flex items-center space-x-1 ${
-                        task.dueDate < new Date() && !task.completed ? 'text-red-600 font-medium' : ''
-                      }`}>
-                        <Calendar className="h-3 w-3" />
-                        <span>{formatDate(task.dueDate)}</span>
-                      </span>
-                    )}
-                    {task.timeframe === 'weekly' && (
-                      <span className="text-purple-600">
-                        Hoidettava viikon aikana
-                      </span>
-                    )}
-                    {task.assignmentType === 'shared' && (
-                      <span className="text-blue-600">
-                        Vastuussa: {formatAssignees(task)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))
+            .map(task => renderTaskItem(task))
         ) : (
           <div className="text-center py-8 text-slate-500">
             <div className="bg-slate-100 p-3 rounded-lg w-fit mx-auto mb-2">
@@ -720,6 +969,366 @@ const TodoLists: React.FC = () => {
         })}
       </div>
 
+      {/* Tehtävän tiedot ja muokkaus -modaali */}
+      {showTaskDetailModal && selectedTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            {/* Kiinteä otsikko */}
+            <div className="p-6 border-b border-slate-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => toggleTask(selectedTask.id)}
+                    className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
+                      selectedTask.completed
+                        ? 'bg-green-500 border-green-500 text-white'
+                        : 'border-slate-300 hover:border-green-500'
+                    }`}
+                  >
+                    {selectedTask.completed && <Check className="h-4 w-4" />}
+                  </button>
+                  <h3 className={`text-lg font-semibold ${
+                    selectedTask.completed ? 'line-through text-slate-500' : 'text-slate-800'
+                  }`}>
+                    {isEditingTask ? 'Muokkaa tehtävää' : selectedTask.title}
+                  </h3>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {!isEditingTask ? (
+                    <button
+                      onClick={startEditingTask}
+                      className="text-slate-400 hover:text-blue-600 transition-colors duration-200"
+                      title="Muokkaa tehtävää"
+                    >
+                      <Edit2 className="h-5 w-5" />
+                    </button>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={saveTaskChanges}
+                        className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors duration-200"
+                      >
+                        Tallenna
+                      </button>
+                      <button
+                        onClick={cancelEditingTask}
+                        className="bg-slate-600 text-white px-3 py-1 rounded text-sm hover:bg-slate-700 transition-colors duration-200"
+                      >
+                        Peruuta
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setShowTaskDetailModal(false)}
+                    className="text-slate-400 hover:text-slate-600 transition-colors duration-200"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Vieritettävä sisältö */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {isEditingTask ? (
+                <div className="space-y-6">
+                  {/* Muokkauslomake */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Tehtävä</label>
+                    <input
+                      type="text"
+                      value={editingTask.title}
+                      onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Kuvaus</label>
+                    <textarea
+                      value={editingTask.description}
+                      onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                      placeholder="Lisätietoja tehtävästä..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-3">Tehtävän tyyppi</label>
+                    <div className="space-y-3">
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="editAssignmentType"
+                          value="individual"
+                          checked={editingTask.assignmentType === 'individual'}
+                          onChange={(e) => setEditingTask({ ...editingTask, assignmentType: e.target.value as 'individual' | 'shared' })}
+                          className="text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-slate-800">Henkilökohtainen tehtävä</span>
+                      </label>
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="editAssignmentType"
+                          value="shared"
+                          checked={editingTask.assignmentType === 'shared'}
+                          onChange={(e) => setEditingTask({ ...editingTask, assignmentType: e.target.value as 'individual' | 'shared' })}
+                          className="text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-slate-800">Jaettu tehtävä</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {editingTask.assignmentType === 'individual' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Vastuuhenkilö</label>
+                      <select
+                        value={editingTask.assignedTo[0] || people[0]}
+                        onChange={(e) => setEditingTask({ ...editingTask, assignedTo: [e.target.value] })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {people.map(person => (
+                          <option key={person} value={person}>{person}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {editingTask.assignmentType === 'shared' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-3">
+                        Kuka voi hoitaa tehtävän?
+                      </label>
+                      <div className="space-y-2 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-3">
+                        {people.map(person => (
+                          <label key={person} className="flex items-center space-x-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editingTask.selectedPeople.includes(person)}
+                              onChange={() => togglePersonSelection(person, true)}
+                              className="text-blue-600 focus:ring-blue-500 rounded"
+                            />
+                            <span className="text-slate-800">{person}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-3">Ajankohta</label>
+                    <div className="space-y-3">
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="editTimeframe"
+                          value="specific"
+                          checked={editingTask.timeframe === 'specific'}
+                          onChange={(e) => setEditingTask({ ...editingTask, timeframe: e.target.value as 'specific' | 'weekly' })}
+                          className="text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-slate-800">Tietty päivämäärä</span>
+                      </label>
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="editTimeframe"
+                          value="weekly"
+                          checked={editingTask.timeframe === 'weekly'}
+                          onChange={(e) => setEditingTask({ ...editingTask, timeframe: e.target.value as 'specific' | 'weekly' })}
+                          className="text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-slate-800">Hoidettava viikon aikana</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {editingTask.timeframe === 'specific' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Eräpäivä</label>
+                      <input
+                        type="date"
+                        value={editingTask.dueDate}
+                        onChange={(e) => setEditingTask({ ...editingTask, dueDate: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Prioriteetti</label>
+                    <div className="flex space-x-3">
+                      {Object.entries(priorityLabels).map(([key, label]) => (
+                        <label key={key} className="flex items-center">
+                          <input
+                            type="radio"
+                            name="editPriority"
+                            value={key}
+                            checked={editingTask.priority === key}
+                            onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value as 'low' | 'medium' | 'high' })}
+                            className="text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className={`ml-2 px-2 py-1 rounded-full text-xs border ${priorityColors[key as keyof typeof priorityColors]}`}>
+                            {label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Kategoria</label>
+                    <select
+                      value={editingTask.category}
+                      onChange={(e) => setEditingTask({ ...editingTask, category: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {categories.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Tehtävän tiedot */}
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-700 mb-2">Tila</h4>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                        selectedTask.completed 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {selectedTask.completed ? 'Valmis' : 'Keskeneräinen'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-700 mb-2">Prioriteetti</h4>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${priorityColors[selectedTask.priority]}`}>
+                        {priorityLabels[selectedTask.priority]}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-700 mb-2">Kategoria</h4>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-800">
+                        {selectedTask.category}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-700 mb-2">Tyyppi</h4>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                        selectedTask.assignmentType === 'shared' 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {selectedTask.assignmentType === 'shared' ? 'Jaettu' : 'Henkilökohtainen'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-700 mb-2">Vastuuhenkilö(t)</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTask.assignedTo.map(person => (
+                        <span key={person} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                          {person}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {selectedTask.dueDate && (
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-700 mb-2">Eräpäivä</h4>
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-4 w-4 text-slate-500" />
+                        <span className={`text-sm ${
+                          selectedTask.dueDate < new Date() && !selectedTask.completed 
+                            ? 'text-red-600 font-medium' 
+                            : 'text-slate-800'
+                        }`}>
+                          {formatDate(selectedTask.dueDate)}
+                        </span>
+                        {selectedTask.dueDate < new Date() && !selectedTask.completed && (
+                          <span className="text-xs text-red-600 font-medium">(Myöhässä)</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedTask.timeframe === 'weekly' && (
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-700 mb-2">Ajankohta</h4>
+                      <div className="flex items-center space-x-2">
+                        <Clock className="h-4 w-4 text-purple-500" />
+                        <span className="text-sm text-purple-600">Hoidettava viikon aikana</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedTask.description && (
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-700 mb-2">Kuvaus</h4>
+                      <p className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3">
+                        {selectedTask.description}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-700 mb-2">Luotu</h4>
+                    <span className="text-sm text-slate-600">
+                      {selectedTask.createdAt.toLocaleDateString('fi-FI', { 
+                        day: 'numeric', 
+                        month: 'long', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Kiinteät toiminnot */}
+            {!isEditingTask && (
+              <div className="p-6 border-t border-slate-200 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => deleteTask(selectedTask.id)}
+                    className="flex items-center space-x-2 text-red-600 hover:text-red-700 transition-colors duration-200"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>Poista tehtävä</span>
+                  </button>
+                  
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => toggleTask(selectedTask.id)}
+                      className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                        selectedTask.completed
+                          ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                    >
+                      {selectedTask.completed ? 'Merkitse keskeneräiseksi' : 'Merkitse valmiiksi'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Lisää henkilö -modaali */}
       {showAddPersonModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -800,6 +1409,17 @@ const TodoLists: React.FC = () => {
                   onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                   placeholder="Syötä tehtävän nimi..."
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Kuvaus (valinnainen)</label>
+                <textarea
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  placeholder="Lisätietoja tehtävästä..."
                 />
               </div>
               
@@ -983,6 +1603,7 @@ const TodoLists: React.FC = () => {
                     }</p>
                     <p><strong>Prioriteetti:</strong> {priorityLabels[newTask.priority]}</p>
                     <p><strong>Kategoria:</strong> {newTask.category}</p>
+                    {newTask.description && <p><strong>Kuvaus:</strong> {newTask.description}</p>}
                   </div>
                 </div>
               )}
