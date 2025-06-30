@@ -12,7 +12,6 @@ interface Meal {
 interface DayMeals {
   date: string;
   meals: { [key: string]: Meal | null };
-  extras: ExtraItem[];
 }
 
 interface ExtraItem {
@@ -72,8 +71,6 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
   const [selectedMealType, setSelectedMealType] = useState<string>('');
   const [newExtraItem, setNewExtraItem] = useState('');
   const [newExtraQuantity, setNewExtraQuantity] = useState('');
-  const [newDayExtra, setNewDayExtra] = useState<{ [key: string]: string }>({});
-  const [newDayExtraQuantity, setNewDayExtraQuantity] = useState<{ [key: string]: string }>({});
 
   // Mukautetut ateriat
   const [customMeals, setCustomMeals] = useState<Meal[]>([]);
@@ -159,8 +156,7 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
             dinner: null,
             snack: null,
             evening_snack: null
-          },
-          extras: []
+          }
         });
       }
       setAllPeriodMeals({ ...allPeriodMeals, [periodKey]: days });
@@ -192,36 +188,6 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
     const updatedMeals = periodMeals.map(day => 
       day.date === dayDate 
         ? { ...day, meals: { ...day.meals, [mealType]: null } }
-        : day
-    );
-    setAllPeriodMeals({ ...allPeriodMeals, [currentPeriodKey]: updatedMeals });
-  };
-
-  const addExtraToDay = (dayDate: string) => {
-    const itemText = newDayExtra[dayDate]?.trim();
-    if (!itemText) return;
-
-    const extraItem: ExtraItem = {
-      id: Date.now(),
-      text: itemText,
-      quantity: newDayExtraQuantity[dayDate]?.trim() || undefined
-    };
-
-    const updatedMeals = periodMeals.map(day => 
-      day.date === dayDate 
-        ? { ...day, extras: [...(day.extras || []), extraItem] }
-        : day
-    );
-    
-    setAllPeriodMeals({ ...allPeriodMeals, [currentPeriodKey]: updatedMeals });
-    setNewDayExtra({ ...newDayExtra, [dayDate]: '' });
-    setNewDayExtraQuantity({ ...newDayExtraQuantity, [dayDate]: '' });
-  };
-
-  const removeExtraFromDay = (dayDate: string, extraId: number) => {
-    const updatedMeals = periodMeals.map(day => 
-      day.date === dayDate 
-        ? { ...day, extras: (day.extras || []).filter(extra => extra.id !== extraId) }
         : day
     );
     setAllPeriodMeals({ ...allPeriodMeals, [currentPeriodKey]: updatedMeals });
@@ -284,30 +250,15 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
       quantity: count > 1 ? `${count}x` : undefined
     }));
 
-    // Lisää ylimääräiset tuotteet (jakson yleiset)
+    // Lisää ylimääräiset tuotteet
     const extraItems: ListItem[] = periodExtras.map((extra, index) => ({
       id: Date.now() + 1000 + index,
       text: `[Ruokasuunnittelu] ${extra.text}`,
       completed: false,
       quantity: extra.quantity
     }));
-
-    // Lisää päiväkohtaiset lisäksi-tuotteet
-    const dayExtraItems: ListItem[] = [];
-    periodMeals.forEach((day, dayIndex) => {
-      if (day.extras && day.extras.length > 0) {
-        day.extras.forEach((extra, extraIndex) => {
-          dayExtraItems.push({
-            id: Date.now() + 2000 + dayIndex * 100 + extraIndex,
-            text: `[Ruokasuunnittelu] ${extra.text}`,
-            completed: false,
-            quantity: extra.quantity
-          });
-        });
-      }
-    });
     
-    setSharedShoppingList([...nonMealItems, ...newMealItems, ...extraItems, ...dayExtraItems]);
+    setSharedShoppingList([...nonMealItems, ...newMealItems, ...extraItems]);
   };
 
   const clearMealItemsFromShoppingList = () => {
@@ -466,7 +417,7 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
         </div>
       </div>
 
-      {/* Ateriaruudukko - Vain ateriat */}
+      {/* Ateriaruudukko */}
       <div className="bg-white rounded-xl border border-slate-200/50 overflow-hidden">
         {/* Otsikkorivi */}
         <div className="grid bg-slate-50 border-b border-slate-200" style={{ gridTemplateColumns: `80px repeat(${Math.min(planningSettings.periodLength, 7)}, 1fr)` }}>
@@ -527,139 +478,51 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
         ))}
       </div>
 
-      {/* Lisäksi-taulukko - Rivipohjainen */}
-      <div className="bg-white rounded-xl border border-slate-200/50 overflow-hidden">
-        {/* Otsikkorivi */}
-        <div className="grid grid-cols-3 bg-slate-50 border-b border-slate-200">
-          <div className="p-3 text-sm font-medium text-slate-700 text-center border-r border-slate-200">
-            Päivä
-          </div>
-          <div className="p-3 text-sm font-medium text-slate-700 text-center border-r border-slate-200">
-            Päivälle lisäksi
-          </div>
-          <div className="p-3 text-sm font-medium text-slate-700 text-center">
-            Jaksolle lisäksi
-          </div>
+      {/* Lisäksi tarvitaan */}
+      <div className="bg-white rounded-xl border border-slate-200/50 p-6">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">Lisäksi tarvitaan</h3>
+        <div className="flex space-x-2 mb-4">
+          <input
+            type="text"
+            placeholder="Lisää tuote..."
+            value={newExtraItem}
+            onChange={(e) => setNewExtraItem(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && addExtraItem()}
+            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+          <input
+            type="text"
+            placeholder="Määrä"
+            value={newExtraQuantity}
+            onChange={(e) => setNewExtraQuantity(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && addExtraItem()}
+            className="w-24 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+          <button
+            onClick={addExtraItem}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
-
-        {/* Päivärivit */}
-        {periodMeals.slice(0, Math.min(planningSettings.periodLength, 7)).map((day, dayIndex) => {
-          const date = new Date(day.date);
-          return (
-            <div key={dayIndex} className="grid grid-cols-3 border-b border-slate-200 last:border-b-0">
-              {/* Päivän nimi */}
-              <div className="p-3 flex items-center justify-center bg-slate-50 border-r border-slate-200">
-                <span className="text-sm font-medium text-slate-800">
-                  {getDayName(date, dayIndex)}
-                </span>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+          {periodExtras.map((item) => (
+            <div key={item.id} className="flex items-center justify-between bg-slate-50 rounded-lg p-2">
+              <div>
+                <span className="text-sm text-slate-800">{item.text}</span>
+                {item.quantity && (
+                  <span className="text-xs text-slate-600 ml-2">({item.quantity})</span>
+                )}
               </div>
-
-              {/* Päivälle lisäksi */}
-              <div className="p-3 border-r border-slate-200">
-                {/* Lisäyslomake */}
-                <div className="mb-2">
-                  <div className="flex space-x-1 mb-1">
-                    <input
-                      type="text"
-                      placeholder="Tuote..."
-                      value={newDayExtra[day.date] || ''}
-                      onChange={(e) => setNewDayExtra({ ...newDayExtra, [day.date]: e.target.value })}
-                      onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
-                      className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <button
-                      onClick={() => addExtraToDay(day.date)}
-                      className="bg-blue-600 text-white px-2 py-1 rounded text-sm hover:bg-blue-700 transition-colors duration-200 flex-shrink-0"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Määrä..."
-                    value={newDayExtraQuantity[day.date] || ''}
-                    onChange={(e) => setNewDayExtraQuantity({ ...newDayExtraQuantity, [day.date]: e.target.value })}
-                    onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
-                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                
-                {/* Näytä lisäksi-tuotteet */}
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {(day.extras || []).map((extra) => (
-                    <div key={extra.id} className="flex items-center justify-between bg-slate-50 rounded p-2 border border-slate-200 group">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-slate-800 truncate">{extra.text}</div>
-                        {extra.quantity && (
-                          <div className="text-xs text-slate-600 truncate">({extra.quantity})</div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => removeExtraFromDay(day.date, extra.id)}
-                        className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-2"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Jaksolle lisäksi - Näkyy vain ensimmäisellä rivillä */}
-              {dayIndex === 0 && (
-                <div className="p-3" style={{ gridRow: `1 / ${Math.min(planningSettings.periodLength, 7) + 1}` }}>
-                  {/* Lisäyslomake */}
-                  <div className="mb-2">
-                    <div className="flex space-x-1 mb-1">
-                      <input
-                        type="text"
-                        placeholder="Tuote..."
-                        value={newExtraItem}
-                        onChange={(e) => setNewExtraItem(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && addExtraItem()}
-                        className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                      />
-                      <button
-                        onClick={addExtraItem}
-                        className="bg-green-600 text-white px-2 py-1 rounded text-sm hover:bg-green-700 transition-colors duration-200 flex-shrink-0"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Määrä..."
-                      value={newExtraQuantity}
-                      onChange={(e) => setNewExtraQuantity(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addExtraItem()}
-                      className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                    />
-                  </div>
-                  
-                  {/* Näytä yleiset lisäksi-tuotteet */}
-                  <div className="space-y-1 max-h-64 overflow-y-auto">
-                    {periodExtras.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between bg-slate-50 rounded p-2 border border-slate-200 group">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-slate-800 truncate">{item.text}</div>
-                          {item.quantity && (
-                            <div className="text-xs text-slate-600 truncate">({item.quantity})</div>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => removeExtraItem(item.id)}
-                          className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-2"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <button
+                onClick={() => removeExtraItem(item.id)}
+                className="text-slate-400 hover:text-red-500 transition-colors duration-200"
+              >
+                ×
+              </button>
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       {/* Ostoslista */}
@@ -707,18 +570,7 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
               )}
             </div>
           ))}
-          {/* Näytä päiväkohtaiset lisäksi-tuotteet */}
-          {periodMeals.flatMap(day => day.extras || []).map((extra) => (
-            <div key={`day-${extra.id}`} className="flex items-center justify-between bg-slate-50 rounded-lg p-2">
-              <span className="text-sm text-slate-800">{extra.text}</span>
-              {extra.quantity && (
-                <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-                  {extra.quantity}
-                </span>
-              )}
-            </div>
-          ))}
-          {generateShoppingList().length === 0 && periodExtras.length === 0 && periodMeals.every(day => !day.extras || day.extras.length === 0) && (
+          {generateShoppingList().length === 0 && periodExtras.length === 0 && (
             <div className="col-span-full text-center py-8 text-slate-500">
               <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>Lisää aterioita luodaksesi ostoslistan</p>
