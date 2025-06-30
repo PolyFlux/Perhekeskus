@@ -483,7 +483,7 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
         
         {/* Ateriarivit */}
         {mealTypes.map(mealType => (
-          <div key={mealType.key} className="grid border-b border-slate-200 last:border-b-0" style={{ gridTemplateColumns: `80px repeat(${Math.min(planningSettings.periodLength, 7)}, 1fr)` }}>
+          <div key={mealType.key} className="grid border-b border-slate-200" style={{ gridTemplateColumns: `80px repeat(${Math.min(planningSettings.periodLength, 7)}, 1fr)` }}>
             <div className={`p-2 flex items-center justify-center ${mealType.color} border-r border-slate-200`}>
               <span className="text-xs font-medium">{mealType.shortLabel}</span>
             </div>
@@ -526,52 +526,54 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
           </div>
         ))}
 
-        {/* Lisäksi-rivi jokaiselle päivälle */}
-        <div className="grid border-b border-slate-200 bg-slate-50/50" style={{ gridTemplateColumns: `80px repeat(${Math.min(planningSettings.periodLength, 7)}, 1fr)` }}>
+        {/* Lisäksi-rivi jokaiselle päivälle - Optimoitu */}
+        <div className="grid bg-slate-50/50" style={{ gridTemplateColumns: `80px repeat(${Math.min(planningSettings.periodLength, 7)}, 1fr)` }}>
           <div className="p-2 flex items-center justify-center bg-slate-100 text-slate-700 border-r border-slate-200">
             <span className="text-xs font-medium">Lisäksi</span>
           </div>
           {periodMeals.slice(0, Math.min(planningSettings.periodLength, 7)).map((day, dayIndex) => (
-            <div key={dayIndex} className="p-2 border-l border-slate-200 min-h-20">
-              {/* Lisää uusi lisäksi-tuote */}
-              <div className="flex space-x-1 mb-2">
+            <div key={dayIndex} className="p-1 border-l border-slate-200 min-h-16">
+              {/* Kompakti lisäyslomake */}
+              <div className="mb-1">
+                <div className="flex space-x-1 mb-1">
+                  <input
+                    type="text"
+                    placeholder="Tuote..."
+                    value={newDayExtra[day.date] || ''}
+                    onChange={(e) => setNewDayExtra({ ...newDayExtra, [day.date]: e.target.value })}
+                    onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
+                    className="flex-1 px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    onClick={() => addExtraToDay(day.date)}
+                    className="bg-blue-600 text-white px-1 py-1 rounded text-xs hover:bg-blue-700 transition-colors duration-200 flex-shrink-0"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
                 <input
                   type="text"
-                  placeholder="Lisää..."
-                  value={newDayExtra[day.date] || ''}
-                  onChange={(e) => setNewDayExtra({ ...newDayExtra, [day.date]: e.target.value })}
-                  onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
-                  className="flex-1 px-2 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder="Määrä"
+                  placeholder="Määrä..."
                   value={newDayExtraQuantity[day.date] || ''}
                   onChange={(e) => setNewDayExtraQuantity({ ...newDayExtraQuantity, [day.date]: e.target.value })}
                   onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
-                  className="w-12 px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 />
-                <button
-                  onClick={() => addExtraToDay(day.date)}
-                  className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition-colors duration-200"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
               </div>
               
-              {/* Näytä lisäksi-tuotteet */}
-              <div className="space-y-1">
+              {/* Näytä lisäksi-tuotteet kompaktisti */}
+              <div className="space-y-1 max-h-20 overflow-y-auto">
                 {(day.extras || []).map((extra) => (
                   <div key={extra.id} className="flex items-center justify-between bg-white rounded p-1 border border-slate-200 group">
                     <div className="flex-1 min-w-0">
-                      <span className="text-xs text-slate-800 truncate block">{extra.text}</span>
+                      <div className="text-xs text-slate-800 truncate">{extra.text}</div>
                       {extra.quantity && (
-                        <span className="text-xs text-slate-600">({extra.quantity})</span>
+                        <div className="text-xs text-slate-600 truncate">({extra.quantity})</div>
                       )}
                     </div>
                     <button
                       onClick={() => removeExtraFromDay(day.date, extra.id)}
-                      className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                      className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-1"
                     >
                       <X className="h-3 w-3" />
                     </button>
