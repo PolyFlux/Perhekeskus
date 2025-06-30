@@ -1,10 +1,22 @@
 import React from 'react';
 import { CheckSquare, PiggyBank, UtensilsCrossed, Clock, AlertCircle, Calendar, User } from 'lucide-react';
 
+interface Task {
+  id: number;
+  name: string;
+  completed: boolean;
+  priority: 'low' | 'medium' | 'high';
+  category: string;
+  type: 'daily' | 'weekly' | 'specific' | 'anytime';
+  assignedTo: string[];
+  dueDate?: string;
+  description?: string;
+  createdAt: Date;
+}
+
 interface DashboardProps {
   onNavigate: (view: string) => void;
-  // Lisätään propsit dynaamisille tiedoille
-  todayTasks: any[];
+  todayTasks: Task[];
   budgetRemaining: number;
   todayMeals: any[];
 }
@@ -24,7 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
     });
 
     // Ryhmittele tehtävät henkilöittäin - jokainen henkilö lasketaan erikseen
-    const tasksByPerson: { [person: string]: any[] } = {};
+    const tasksByPerson: { [person: string]: Task[] } = {};
     
     todayTasksFiltered.forEach(task => {
       task.assignedTo.forEach((person: string) => {
