@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, X, User, Users, Clock, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Check, X, User, Users, Clock, Calendar, ChevronDown, ChevronUp, Edit2, Save } from 'lucide-react';
 
 interface Task {
   id: number;
@@ -67,6 +67,12 @@ const TodoLists: React.FC = () => {
     person1: 'today',
     person2: 'today'
   });
+
+  // Tehtävän tarkastelu/muokkaus
+  const [selectedTask, setSelectedTask] = useState<{ task: Task; personId: string } | null>(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [isEditingTask, setIsEditingTask] = useState(false);
+  const [editedTask, setEditedTask] = useState<Task | null>(null);
 
   const dayNames = ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'];
 
@@ -174,12 +180,85 @@ const TodoLists: React.FC = () => {
     }
   };
 
+  const openTaskModal = (task: Task, personId: string) => {
+    setSelectedTask({ task, personId });
+    setEditedTask({ ...task });
+    setShowTaskModal(true);
+    setIsEditingTask(false);
+  };
+
+  const closeTaskModal = () => {
+    setShowTaskModal(false);
+    setSelectedTask(null);
+    setEditedTask(null);
+    setIsEditingTask(false);
+  };
+
+  const startEditingTask = () => {
+    setIsEditingTask(true);
+  };
+
+  const cancelEditingTask = () => {
+    if (selectedTask) {
+      setEditedTask({ ...selectedTask.task });
+    }
+    setIsEditingTask(false);
+  };
+
+  const saveTaskChanges = () => {
+    if (!editedTask || !selectedTask) return;
+
+    // Päivitä tehtävä
+    if (editedTask.isShared) {
+      // Jaettu tehtävä - päivitä molemmille
+      setPeople(people.map(person => ({
+        ...person,
+        tasks: person.tasks.map(task => 
+          task.id === editedTask.id ? { ...editedTask } : task
+        )
+      })));
+    } else {
+      // Henkilökohtainen tehtävä
+      setPeople(people.map(person => 
+        person.id === selectedTask.personId 
+          ? { 
+              ...person, 
+              tasks: person.tasks.map(task => 
+                task.id === editedTask.id ? { ...editedTask } : task
+              )
+            }
+          : person
+      ));
+    }
+
+    setIsEditingTask(false);
+    setSelectedTask({ ...selectedTask, task: editedTask });
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high': return 'bg-red-400';
       case 'medium': return 'bg-yellow-400';
       case 'low': return 'bg-green-400';
       default: return 'bg-gray-400';
+    }
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'Korkea';
+      case 'medium': return 'Keskitaso';
+      case 'low': return 'Matala';
+      default: return 'Keskitaso';
+    }
+  };
+
+  const getCategoryLabel = (category?: string) => {
+    switch (category) {
+      case 'today': return 'Tämän päivän tehtävä';
+      case 'scheduled': return 'Ajoitettu tehtävä';
+      case 'weekly': return 'Viikkotehtävä';
+      default: return 'Tämän päivän tehtävä';
     }
   };
 
@@ -325,22 +404,26 @@ const TodoLists: React.FC = () => {
                   {dayTasks.slice(0, 3).map(task => (
                     <div
                       key={task.id}
-                      className={`text-xs p-1 rounded border transition-all duration-200 ${
+                      onClick={() => openTaskModal(task, person.id)}
+                      className={`text-xs p-1 rounded border transition-all duration-200 cursor-pointer hover:shadow-sm ${
                         task.completed 
                           ? 'bg-slate-100 border-slate-200 opacity-60 line-through' 
                           : task.category === 'today'
-                          ? 'bg-blue-100 border-blue-200 text-blue-800'
+                          ? 'bg-blue-100 border-blue-200 text-blue-800 hover:bg-blue-200'
                           : task.category === 'scheduled'
                           ? isTaskOverdue(task) 
-                            ? 'bg-red-100 border-red-200 text-red-800'
-                            : 'bg-purple-100 border-purple-200 text-purple-800'
-                          : 'bg-green-100 border-green-200 text-green-800'
+                            ? 'bg-red-100 border-red-200 text-red-800 hover:bg-red-200'
+                            : 'bg-purple-100 border-purple-200 text-purple-800 hover:bg-purple-200'
+                          : 'bg-green-100 border-green-200 text-green-800 hover:bg-green-200'
                       } ${task.isShared ? 'border-l-2 border-l-orange-400' : ''}`}
-                      title={task.text}
+                      title={`Klikkaa avataksesi: ${task.text}`}
                     >
                       <div className="flex items-center space-x-1">
                         <button
-                          onClick={() => toggleTask(person.id, task.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleTask(person.id, task.id);
+                          }}
                           className={`flex-shrink-0 w-2 h-2 rounded border flex items-center justify-center ${
                             task.completed
                               ? 'bg-green-500 border-green-500 text-white'
@@ -473,14 +556,19 @@ const TodoLists: React.FC = () => {
                     {getFilteredTasks(person, currentView).map(task => (
                       <div
                         key={task.id}
-                        className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 ${
+                        onClick={() => openTaskModal(task, person.id)}
+                        className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-sm ${
                           task.completed 
                             ? 'bg-slate-50 border-slate-200 opacity-60' 
                             : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                         } ${task.isShared ? 'border-l-4 border-l-orange-400' : ''}`}
+                        title={`Klikkaa avataksesi: ${task.text}`}
                       >
                         <button
-                          onClick={() => toggleTask(person.id, task.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleTask(person.id, task.id);
+                          }}
                           className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
                             task.completed
                               ? 'bg-green-500 border-green-500 text-white'
@@ -509,7 +597,10 @@ const TodoLists: React.FC = () => {
                         </div>
                         
                         <button
-                          onClick={() => deleteTask(person.id, task.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteTask(person.id, task.id);
+                          }}
                           className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200"
                         >
                           <X className="h-3 w-3" />
@@ -611,6 +702,290 @@ const TodoLists: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Tehtävän tarkastelu/muokkaus -modaali */}
+      {showTaskModal && selectedTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] flex flex-col">
+            {/* Kiinteä otsikko */}
+            <div className="p-6 border-b border-slate-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-800">
+                  {isEditingTask ? 'Muokkaa tehtävää' : 'Tehtävän tiedot'}
+                </h3>
+                <button
+                  onClick={closeTaskModal}
+                  className="text-slate-400 hover:text-slate-600 transition-colors duration-200"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Vieritettävä sisältö */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {editedTask && (
+                <div className="space-y-4">
+                  {/* Tehtävän nimi */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Tehtävän nimi
+                    </label>
+                    {isEditingTask ? (
+                      <input
+                        type="text"
+                        value={editedTask.text}
+                        onChange={(e) => setEditedTask({ ...editedTask, text: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    ) : (
+                      <p className="text-slate-800 bg-slate-50 p-3 rounded-lg">{editedTask.text}</p>
+                    )}
+                  </div>
+
+                  {/* Prioriteetti */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Prioriteetti
+                    </label>
+                    {isEditingTask ? (
+                      <select
+                        value={editedTask.priority}
+                        onChange={(e) => setEditedTask({ ...editedTask, priority: e.target.value as 'low' | 'medium' | 'high' })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="low">Matala</option>
+                        <option value="medium">Keskitaso</option>
+                        <option value="high">Korkea</option>
+                      </select>
+                    ) : (
+                      <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-lg">
+                        <div className={`w-3 h-3 rounded-full ${getPriorityColor(editedTask.priority)}`} />
+                        <span className="text-slate-800">{getPriorityLabel(editedTask.priority)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Kategoria/Ajankohta */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Ajankohta
+                    </label>
+                    {isEditingTask ? (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="taskCategory"
+                              checked={editedTask.category === 'today'}
+                              onChange={() => setEditedTask({ 
+                                ...editedTask, 
+                                category: 'today', 
+                                dueDate: undefined, 
+                                dueDateType: undefined 
+                              })}
+                              className="text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-slate-700">Tämän päivän tehtävä</span>
+                          </label>
+                          
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="taskCategory"
+                              checked={editedTask.category === 'scheduled'}
+                              onChange={() => setEditedTask({ 
+                                ...editedTask, 
+                                category: 'scheduled', 
+                                dueDateType: 'specific' 
+                              })}
+                              className="text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-slate-700">Tietty päivämäärä</span>
+                          </label>
+                          
+                          {editedTask.category === 'scheduled' && (
+                            <input
+                              type="date"
+                              value={editedTask.dueDate ? editedTask.dueDate.toISOString().split('T')[0] : ''}
+                              onChange={(e) => setEditedTask({ 
+                                ...editedTask, 
+                                dueDate: e.target.value ? new Date(e.target.value) : undefined 
+                              })}
+                              min={new Date().toISOString().split('T')[0]}
+                              className="ml-6 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          )}
+                          
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="taskCategory"
+                              checked={editedTask.category === 'weekly'}
+                              onChange={() => setEditedTask({ 
+                                ...editedTask, 
+                                category: 'weekly', 
+                                dueDate: undefined, 
+                                dueDateType: 'within_week' 
+                              })}
+                              className="text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-slate-700">Viikon sisällä hoidettava</span>
+                          </label>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-slate-50 p-3 rounded-lg">
+                        <p className="text-slate-800">{getCategoryLabel(editedTask.category)}</p>
+                        {editedTask.dueDate && (
+                          <p className="text-sm text-slate-600 mt-1">
+                            Eräpäivä: {formatDueDate(editedTask.dueDate)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Jaettu tehtävä */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Tehtävän tyyppi
+                    </label>
+                    {isEditingTask ? (
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editedTask.isShared || false}
+                          onChange={(e) => setEditedTask({ ...editedTask, isShared: e.target.checked })}
+                          className="text-orange-600 focus:ring-orange-500 rounded"
+                        />
+                        <span className="text-sm text-slate-700 flex items-center space-x-1">
+                          <Users className="h-4 w-4" />
+                          <span>Jaettu tehtävä (kumpi kerkeää)</span>
+                        </span>
+                      </label>
+                    ) : (
+                      <div className="bg-slate-50 p-3 rounded-lg">
+                        {editedTask.isShared ? (
+                          <div className="flex items-center space-x-2 text-orange-600">
+                            <Users className="h-4 w-4" />
+                            <span>Jaettu tehtävä (kumpi kerkeää)</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2 text-slate-600">
+                            <User className="h-4 w-4" />
+                            <span>Henkilökohtainen tehtävä</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Suorittaja */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Suorittaja
+                    </label>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-slate-800">
+                        {editedTask.isShared 
+                          ? 'Kumpi tahansa (jaettu tehtävä)' 
+                          : people.find(p => p.id === selectedTask.personId)?.name || 'Tuntematon'
+                        }
+                      </p>
+                      {editedTask.completed && editedTask.completedBy && (
+                        <p className="text-sm text-green-600 mt-1">
+                          ✓ Suorittanut: {editedTask.completedBy}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Tila */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Tila
+                    </label>
+                    <div className={`p-3 rounded-lg ${
+                      editedTask.completed 
+                        ? 'bg-green-50 border border-green-200' 
+                        : 'bg-yellow-50 border border-yellow-200'
+                    }`}>
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-3 h-3 rounded-full ${
+                          editedTask.completed ? 'bg-green-500' : 'bg-yellow-500'
+                        }`} />
+                        <span className={`font-medium ${
+                          editedTask.completed ? 'text-green-800' : 'text-yellow-800'
+                        }`}>
+                          {editedTask.completed ? 'Valmis' : 'Kesken'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Kiinteät painikkeet */}
+            <div className="p-6 border-t border-slate-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  {!isEditingTask ? (
+                    <>
+                      <button
+                        onClick={() => toggleTask(selectedTask.personId, selectedTask.task.id)}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200 ${
+                          selectedTask.task.completed
+                            ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                      >
+                        <Check className="h-4 w-4" />
+                        <span>{selectedTask.task.completed ? 'Merkitse keskeneräiseksi' : 'Merkitse valmiiksi'}</span>
+                      </button>
+                      <button
+                        onClick={startEditingTask}
+                        className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        <span>Muokkaa</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={saveTaskChanges}
+                        className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+                      >
+                        <Save className="h-4 w-4" />
+                        <span>Tallenna</span>
+                      </button>
+                      <button
+                        onClick={cancelEditingTask}
+                        className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors duration-200"
+                      >
+                        Peruuta
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <button
+                  onClick={() => {
+                    deleteTask(selectedTask.personId, selectedTask.task.id);
+                    closeTaskModal();
+                  }}
+                  className="text-red-600 hover:text-red-700 px-4 py-2 transition-colors duration-200"
+                >
+                  Poista tehtävä
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
