@@ -431,7 +431,7 @@ const CalendarView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Otsikko */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <h2 className="text-2xl font-bold text-slate-800">Kalenteri</h2>
           <div className="flex items-center space-x-2">
@@ -456,7 +456,7 @@ const CalendarView: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="flex items-center bg-slate-100 rounded-lg p-1">
             <button
               onClick={() => setView('month')}
@@ -477,14 +477,14 @@ const CalendarView: React.FC = () => {
           </div>
           <button
             onClick={() => setShowCategoriesModal(true)}
-            className="flex items-center space-x-2 bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors duration-200"
+            className="flex items-center justify-center space-x-2 bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors duration-200"
           >
             <Settings className="h-4 w-4" />
-            <span>Kategoriat</span>
+            <span className="hidden sm:inline">Kategoriat</span>
           </button>
           <button 
             onClick={() => setShowAddEventModal(true)}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+            className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
           >
             <Plus className="h-4 w-4" />
             <span>Lisää tapahtuma</span>
@@ -568,9 +568,10 @@ const CalendarView: React.FC = () => {
       {/* Kategorioiden hallinta -modaali */}
       {showCategoriesModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            {/* Kiinteä otsikko */}
+            <div className="p-6 border-b border-slate-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-slate-800">Hallinnoi kategorioita</h3>
                 <div className="flex items-center space-x-2">
                   <button
@@ -578,7 +579,7 @@ const CalendarView: React.FC = () => {
                     className="flex items-center space-x-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm"
                   >
                     <Plus className="h-4 w-4" />
-                    <span>Uusi kategoria</span>
+                    <span className="hidden sm:inline">Uusi kategoria</span>
                   </button>
                   <button
                     onClick={() => setShowCategoriesModal(false)}
@@ -588,7 +589,10 @@ const CalendarView: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+            </div>
+            
+            {/* Vieritettävä sisältö */}
+            <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-3">
                 {categories.map((category) => {
                   const eventCount = events.filter(event => event.categoryId === category.id).length;
@@ -682,95 +686,104 @@ const CalendarView: React.FC = () => {
       {/* Lisää kategoria -modaali */}
       {showAddCategoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-slate-800">Luo uusi kategoria</h3>
-              <button
-                onClick={() => setShowAddCategoryModal(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors duration-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] flex flex-col">
+            {/* Kiinteä otsikko */}
+            <div className="p-6 border-b border-slate-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-800">Luo uusi kategoria</h3>
+                <button
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors duration-200"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Kategorian nimi *
-                </label>
-                <input
-                  type="text"
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  placeholder="Esim. Harrastukset, Lääkärikäynnit..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Kuvaus
-                </label>
-                <textarea
-                  value={newCategory.description}
-                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                  placeholder="Mitä tähän kategoriaan kuuluu..."
-                  rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-3">
-                  Väri
-                </label>
-                <div className="grid grid-cols-6 gap-2">
-                  {availableColors.map((color) => (
-                    <button
-                      key={color.value}
-                      onClick={() => setNewCategory({ ...newCategory, color: color.value })}
-                      className={`w-10 h-10 rounded-full ${color.preview} border-2 transition-colors duration-200 ${
-                        newCategory.color === color.value ? 'border-slate-800' : 'border-slate-300'
-                      }`}
-                      title={color.label}
-                    />
-                  ))}
+            {/* Vieritettävä sisältö */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Kategorian nimi *
+                  </label>
+                  <input
+                    type="text"
+                    value={newCategory.name}
+                    onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                    placeholder="Esim. Harrastukset, Lääkärikäynnit..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
                 </div>
-              </div>
 
-              {/* Esikatselu */}
-              {newCategory.name && (
-                <div className="bg-slate-50 rounded-lg p-3">
-                  <h4 className="text-sm font-medium text-slate-800 mb-2">Esikatselu:</h4>
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-4 h-4 rounded-full ${newCategory.color}`}></div>
-                    <span className="text-sm font-medium text-slate-800">{newCategory.name}</span>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Kuvaus
+                  </label>
+                  <textarea
+                    value={newCategory.description}
+                    onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                    placeholder="Mitä tähän kategoriaan kuuluu..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                    Väri
+                  </label>
+                  <div className="grid grid-cols-6 gap-2">
+                    {availableColors.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => setNewCategory({ ...newCategory, color: color.value })}
+                        className={`w-10 h-10 rounded-full ${color.preview} border-2 transition-colors duration-200 ${
+                          newCategory.color === color.value ? 'border-slate-800' : 'border-slate-300'
+                        }`}
+                        title={color.label}
+                      />
+                    ))}
                   </div>
-                  {newCategory.description && (
-                    <div className="text-xs text-slate-600 mt-1 ml-6">{newCategory.description}</div>
-                  )}
                 </div>
-              )}
+
+                {/* Esikatselu */}
+                {newCategory.name && (
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <h4 className="text-sm font-medium text-slate-800 mb-2">Esikatselu:</h4>
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-4 h-4 rounded-full ${newCategory.color}`}></div>
+                      <span className="text-sm font-medium text-slate-800">{newCategory.name}</span>
+                    </div>
+                    {newCategory.description && (
+                      <div className="text-xs text-slate-600 mt-1 ml-6">{newCategory.description}</div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             
-            <div className="flex items-center justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowAddCategoryModal(false)}
-                className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors duration-200"
-              >
-                Peruuta
-              </button>
-              <button
-                onClick={addCategory}
-                disabled={!newCategory.name.trim()}
-                className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
-                  newCategory.name.trim()
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                Luo kategoria
-              </button>
+            {/* Kiinteät painikkeet */}
+            <div className="p-6 border-t border-slate-200 flex-shrink-0">
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors duration-200"
+                >
+                  Peruuta
+                </button>
+                <button
+                  onClick={addCategory}
+                  disabled={!newCategory.name.trim()}
+                  className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                    newCategory.name.trim()
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                  }`}
+                >
+                  Luo kategoria
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -779,172 +792,181 @@ const CalendarView: React.FC = () => {
       {/* Lisää tapahtuma -modaali */}
       {showAddEventModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-slate-800">Lisää uusi tapahtuma</h3>
-              <button
-                onClick={() => setShowAddEventModal(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors duration-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] flex flex-col">
+            {/* Kiinteä otsikko */}
+            <div className="p-6 border-b border-slate-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-800">Lisää uusi tapahtuma</h3>
+                <button
+                  onClick={() => setShowAddEventModal(false)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors duration-200"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
             
-            <div className="space-y-4">
-              {/* Otsikko */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Tapahtuman nimi *
-                </label>
-                <input
-                  type="text"
-                  value={newEvent.title}
-                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                  placeholder="Syötä tapahtuman nimi..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Päivämäärä */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Päivämäärä *
-                </label>
-                <input
-                  type="date"
-                  value={newEvent.date}
-                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Alkamis- ja päättymisaika */}
-              <div className="grid grid-cols-2 gap-4">
+            {/* Vieritettävä sisältö */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
+                {/* Otsikko */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Alkamisaika *
+                    Tapahtuman nimi *
                   </label>
                   <input
-                    type="time"
-                    value={newEvent.startTime}
-                    onChange={(e) => handleStartTimeChange(e.target.value)}
+                    type="text"
+                    value={newEvent.title}
+                    onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                    placeholder="Syötä tapahtuman nimi..."
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
+
+                {/* Päivämäärä */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Päättymisaika *
+                    Päivämäärä *
                   </label>
                   <input
-                    type="time"
-                    value={newEvent.endTime}
-                    onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      !validateEventTimes(newEvent.startTime, newEvent.endTime) 
-                        ? 'border-red-300 bg-red-50' 
-                        : 'border-slate-300'
-                    }`}
+                    type="date"
+                    value={newEvent.date}
+                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
-                  {!validateEventTimes(newEvent.startTime, newEvent.endTime) && (
-                    <p className="text-red-600 text-xs mt-1">Päättymisajan tulee olla alkamisajan jälkeen</p>
-                  )}
                 </div>
-              </div>
 
-              {/* Kategoria */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Kategoria
-                </label>
-                <select
-                  value={newEvent.categoryId}
-                  onChange={(e) => setNewEvent({ ...newEvent, categoryId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="flex items-center space-x-2 mt-2">
-                  <div className={`w-3 h-3 rounded-full ${getCategoryById(newEvent.categoryId).color}`}></div>
-                  <span className="text-xs text-slate-600">
-                    {getCategoryById(newEvent.categoryId).description}
-                  </span>
-                </div>
-              </div>
-
-              {/* Sijainti */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Sijainti
-                </label>
-                <input
-                  type="text"
-                  value={newEvent.location}
-                  onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-                  placeholder="Esim. Koti, Toimisto, Ravintola..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Kuvaus */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Kuvaus
-                </label>
-                <textarea
-                  value={newEvent.description}
-                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                  placeholder="Lisätietoja tapahtumasta..."
-                  rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                />
-              </div>
-
-              {/* Esikatselu */}
-              {newEvent.title && validateEventTimes(newEvent.startTime, newEvent.endTime) && (
-                <div className="bg-slate-50 rounded-lg p-3">
-                  <h4 className="text-sm font-medium text-slate-800 mb-2">Esikatselu:</h4>
-                  <div className={`${getCategoryById(newEvent.categoryId).color} text-white text-sm p-2 rounded inline-block`}>
-                    {newEvent.title}
+                {/* Alkamis- ja päättymisaika */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Alkamisaika *
+                    </label>
+                    <input
+                      type="time"
+                      value={newEvent.startTime}
+                      onChange={(e) => handleStartTimeChange(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
                   </div>
-                  <div className="text-xs text-slate-600 mt-2 flex items-center space-x-2">
-                    <span>{new Date(newEvent.date).toLocaleDateString('fi-FI')}</span>
-                    <span>•</span>
-                    <span>{newEvent.startTime}-{newEvent.endTime}</span>
-                    <span>•</span>
-                    <span>{getCategoryById(newEvent.categoryId).name}</span>
-                    {newEvent.location && (
-                      <>
-                        <span>•</span>
-                        <span>{newEvent.location}</span>
-                      </>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Päättymisaika *
+                    </label>
+                    <input
+                      type="time"
+                      value={newEvent.endTime}
+                      onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        !validateEventTimes(newEvent.startTime, newEvent.endTime) 
+                          ? 'border-red-300 bg-red-50' 
+                          : 'border-slate-300'
+                      }`}
+                    />
+                    {!validateEventTimes(newEvent.startTime, newEvent.endTime) && (
+                      <p className="text-red-600 text-xs mt-1">Päättymisajan tulee olla alkamisajan jälkeen</p>
                     )}
                   </div>
                 </div>
-              )}
+
+                {/* Kategoria */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Kategoria
+                  </label>
+                  <select
+                    value={newEvent.categoryId}
+                    onChange={(e) => setNewEvent({ ...newEvent, categoryId: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <div className={`w-3 h-3 rounded-full ${getCategoryById(newEvent.categoryId).color}`}></div>
+                    <span className="text-xs text-slate-600">
+                      {getCategoryById(newEvent.categoryId).description}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Sijainti */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Sijainti
+                  </label>
+                  <input
+                    type="text"
+                    value={newEvent.location}
+                    onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                    placeholder="Esim. Koti, Toimisto, Ravintola..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Kuvaus */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Kuvaus
+                  </label>
+                  <textarea
+                    value={newEvent.description}
+                    onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                    placeholder="Lisätietoja tapahtumasta..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  />
+                </div>
+
+                {/* Esikatselu */}
+                {newEvent.title && validateEventTimes(newEvent.startTime, newEvent.endTime) && (
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <h4 className="text-sm font-medium text-slate-800 mb-2">Esikatselu:</h4>
+                    <div className={`${getCategoryById(newEvent.categoryId).color} text-white text-sm p-2 rounded inline-block`}>
+                      {newEvent.title}
+                    </div>
+                    <div className="text-xs text-slate-600 mt-2 flex flex-wrap items-center gap-2">
+                      <span>{new Date(newEvent.date).toLocaleDateString('fi-FI')}</span>
+                      <span>•</span>
+                      <span>{newEvent.startTime}-{newEvent.endTime}</span>
+                      <span>•</span>
+                      <span>{getCategoryById(newEvent.categoryId).name}</span>
+                      {newEvent.location && (
+                        <>
+                          <span>•</span>
+                          <span>{newEvent.location}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             
-            <div className="flex items-center justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowAddEventModal(false)}
-                className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors duration-200"
-              >
-                Peruuta
-              </button>
-              <button
-                onClick={addEvent}
-                disabled={!newEvent.title.trim() || !validateEventTimes(newEvent.startTime, newEvent.endTime)}
-                className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
-                  newEvent.title.trim() && validateEventTimes(newEvent.startTime, newEvent.endTime)
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                Lisää tapahtuma
-              </button>
+            {/* Kiinteät painikkeet */}
+            <div className="p-6 border-t border-slate-200 flex-shrink-0">
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  onClick={() => setShowAddEventModal(false)}
+                  className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors duration-200"
+                >
+                  Peruuta
+                </button>
+                <button
+                  onClick={addEvent}
+                  disabled={!newEvent.title.trim() || !validateEventTimes(newEvent.startTime, newEvent.endTime)}
+                  className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                    newEvent.title.trim() && validateEventTimes(newEvent.startTime, newEvent.endTime)
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                  }`}
+                >
+                  Lisää tapahtuma
+                </button>
+              </div>
             </div>
           </div>
         </div>
