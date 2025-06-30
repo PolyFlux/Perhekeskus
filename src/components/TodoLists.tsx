@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, X, User, Users, Clock, Calendar, ChevronDown, ChevronUp, Edit2, Save } from 'lucide-react';
+import { Plus, Check, X, User, Users, Clock, Calendar, ChevronDown, ChevronUp, Edit2, Save, UserPlus, Trash2 } from 'lucide-react';
 
 interface Task {
   id: number;
@@ -11,6 +11,7 @@ interface Task {
   dueDate?: Date;
   dueDateType?: 'specific' | 'within_week' | 'flexible';
   category?: 'today' | 'scheduled' | 'weekly';
+  assignedTo?: string; // Lisätty: kenelle tehtävä on määrätty
 }
 
 interface Person {
@@ -29,14 +30,14 @@ const TodoLists: React.FC = () => {
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
       tasks: [
-        { id: 1, text: 'Ruokaostokset', completed: false, priority: 'high', category: 'today' },
-        { id: 2, text: 'Soita hammaslääkärille ajanvarausta varten', completed: false, priority: 'medium', dueDate: new Date(2025, 0, 25), dueDateType: 'specific', category: 'scheduled' },
-        { id: 3, text: 'Hae kuivapesu', completed: true, priority: 'low', category: 'today' },
-        { id: 4, text: 'Valmista illallinen', completed: false, priority: 'high', category: 'today' },
+        { id: 1, text: 'Ruokaostokset', completed: false, priority: 'high', category: 'today', assignedTo: 'person1' },
+        { id: 2, text: 'Soita hammaslääkärille ajanvarausta varten', completed: false, priority: 'medium', dueDate: new Date(2025, 0, 25), dueDateType: 'specific', category: 'scheduled', assignedTo: 'person1' },
+        { id: 3, text: 'Hae kuivapesu', completed: true, priority: 'low', category: 'today', assignedTo: 'person1' },
+        { id: 4, text: 'Valmista illallinen', completed: false, priority: 'high', category: 'today', assignedTo: 'person1' },
         { id: 5, text: 'Vie roskat ulos', completed: false, priority: 'medium', isShared: true, category: 'today' },
         { id: 6, text: 'Käy apteekissa', completed: true, priority: 'medium', isShared: true, completedBy: 'Äiti', category: 'today' },
-        { id: 7, text: 'Siivoa kylpyhuone', completed: false, priority: 'low', dueDateType: 'within_week', category: 'weekly' },
-        { id: 8, text: 'Varaa kesäloma', completed: false, priority: 'medium', dueDate: new Date(2025, 0, 30), dueDateType: 'specific', category: 'scheduled' },
+        { id: 7, text: 'Siivoa kylpyhuone', completed: false, priority: 'low', dueDateType: 'within_week', category: 'weekly', assignedTo: 'person1' },
+        { id: 8, text: 'Varaa kesäloma', completed: false, priority: 'medium', dueDate: new Date(2025, 0, 30), dueDateType: 'specific', category: 'scheduled', assignedTo: 'person1' },
       ]
     },
     {
@@ -45,13 +46,13 @@ const TodoLists: React.FC = () => {
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
       tasks: [
-        { id: 9, text: 'Korjaa keittiön hana', completed: false, priority: 'high', category: 'today' },
-        { id: 10, text: 'Varaa auton huolto', completed: false, priority: 'medium', dueDate: new Date(2025, 0, 28), dueDateType: 'specific', category: 'scheduled' },
-        { id: 11, text: 'Maksa sähkölasku', completed: true, priority: 'high', category: 'today' },
-        { id: 12, text: 'Siivoa autotalli', completed: false, priority: 'low', dueDateType: 'within_week', category: 'weekly' },
+        { id: 9, text: 'Korjaa keittiön hana', completed: false, priority: 'high', category: 'today', assignedTo: 'person2' },
+        { id: 10, text: 'Varaa auton huolto', completed: false, priority: 'medium', dueDate: new Date(2025, 0, 28), dueDateType: 'specific', category: 'scheduled', assignedTo: 'person2' },
+        { id: 11, text: 'Maksa sähkölasku', completed: true, priority: 'high', category: 'today', assignedTo: 'person2' },
+        { id: 12, text: 'Siivoa autotalli', completed: false, priority: 'low', dueDateType: 'within_week', category: 'weekly', assignedTo: 'person2' },
         { id: 5, text: 'Vie roskat ulos', completed: false, priority: 'medium', isShared: true, category: 'today' },
         { id: 6, text: 'Käy apteekissa', completed: true, priority: 'medium', isShared: true, completedBy: 'Äiti', category: 'today' },
-        { id: 13, text: 'Osta uusi työkalupakki', completed: false, priority: 'low', dueDateType: 'within_week', category: 'weekly' },
+        { id: 13, text: 'Osta uusi työkalupakki', completed: false, priority: 'low', dueDateType: 'within_week', category: 'weekly', assignedTo: 'person2' },
       ]
     }
   ]);
@@ -74,7 +75,78 @@ const TodoLists: React.FC = () => {
   const [isEditingTask, setIsEditingTask] = useState(false);
   const [editedTask, setEditedTask] = useState<Task | null>(null);
 
+  // Henkilöiden hallinta
+  const [showAddPersonModal, setShowAddPersonModal] = useState(false);
+  const [newPersonName, setNewPersonName] = useState('');
+  const [newPersonColor, setNewPersonColor] = useState('text-green-600');
+
   const dayNames = ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'];
+
+  // Värivaihtoehdot uusille henkilöille
+  const availableColors = [
+    { color: 'text-green-600', bgColor: 'bg-green-50', label: 'Vihreä' },
+    { color: 'text-red-600', bgColor: 'bg-red-50', label: 'Punainen' },
+    { color: 'text-yellow-600', bgColor: 'bg-yellow-50', label: 'Keltainen' },
+    { color: 'text-indigo-600', bgColor: 'bg-indigo-50', label: 'Indigo' },
+    { color: 'text-pink-600', bgColor: 'bg-pink-50', label: 'Pinkki' },
+    { color: 'text-teal-600', bgColor: 'bg-teal-50', label: 'Turkoosi' },
+    { color: 'text-orange-600', bgColor: 'bg-orange-50', label: 'Oranssi' },
+    { color: 'text-cyan-600', bgColor: 'bg-cyan-50', label: 'Syaani' },
+  ];
+
+  const addPerson = () => {
+    if (!newPersonName.trim()) return;
+
+    const colorOption = availableColors.find(c => c.color === newPersonColor) || availableColors[0];
+    
+    const newPerson: Person = {
+      id: `person${Date.now()}`,
+      name: newPersonName.trim(),
+      color: colorOption.color,
+      bgColor: colorOption.bgColor,
+      tasks: []
+    };
+
+    setPeople([...people, newPerson]);
+    setPersonViews({ ...personViews, [newPerson.id]: 'today' });
+    setNewPersonName('');
+    setNewPersonColor('text-green-600');
+    setShowAddPersonModal(false);
+  };
+
+  const deletePerson = (personId: string) => {
+    // Estä ensimmäisten kahden henkilön poistaminen
+    if (personId === 'person1' || personId === 'person2') {
+      alert('Äitiä ja isiä ei voi poistaa.');
+      return;
+    }
+
+    // Siirrä henkilön tehtävät ensimmäiselle henkilölle
+    const personToDelete = people.find(p => p.id === personId);
+    if (personToDelete && personToDelete.tasks.length > 0) {
+      const updatedTasks = personToDelete.tasks.map(task => ({
+        ...task,
+        assignedTo: people[0].id
+      }));
+      
+      setPeople(prevPeople => 
+        prevPeople
+          .filter(p => p.id !== personId)
+          .map(p => 
+            p.id === people[0].id 
+              ? { ...p, tasks: [...p.tasks, ...updatedTasks] }
+              : p
+          )
+      );
+    } else {
+      setPeople(people.filter(p => p.id !== personId));
+    }
+
+    // Poista henkilön näkymäasetukset
+    const newPersonViews = { ...personViews };
+    delete newPersonViews[personId];
+    setPersonViews(newPersonViews);
+  };
 
   const addTask = (personId: string) => {
     const taskText = newTask[personId]?.trim();
@@ -99,11 +171,12 @@ const TodoLists: React.FC = () => {
       isShared: isSharedTask[personId] || false,
       dueDate,
       dueDateType: dueDateType === 'none' ? undefined : dueDateType,
-      category
+      category,
+      assignedTo: isSharedTask[personId] ? undefined : personId
     };
 
     if (isSharedTask[personId]) {
-      // Lisää jaettu tehtävä molemmille
+      // Lisää jaettu tehtävä kaikille
       setPeople(people.map(person => ({
         ...person,
         tasks: [...person.tasks, newTaskObj]
@@ -132,7 +205,7 @@ const TodoLists: React.FC = () => {
     if (!task) return;
 
     if (task.isShared) {
-      // Jaettu tehtävä - merkitse valmiiksi molemmille ja tallenna kuka teki
+      // Jaettu tehtävä - merkitse valmiiksi kaikille ja tallenna kuka teki
       setPeople(people.map(person => ({
         ...person,
         tasks: person.tasks.map(t => 
@@ -165,7 +238,7 @@ const TodoLists: React.FC = () => {
     const task = person?.tasks.find(t => t.id === taskId);
     
     if (task?.isShared) {
-      // Poista jaettu tehtävä molemmilta
+      // Poista jaettu tehtävä kaikilta
       setPeople(people.map(person => ({
         ...person,
         tasks: person.tasks.filter(task => task.id !== taskId)
@@ -208,9 +281,44 @@ const TodoLists: React.FC = () => {
   const saveTaskChanges = () => {
     if (!editedTask || !selectedTask) return;
 
-    // Päivitä tehtävä
-    if (editedTask.isShared) {
-      // Jaettu tehtävä - päivitä molemmille
+    // Jos tehtävä muuttui jaetuksi tai ei-jaetuksi, päivitä kaikki listat
+    if (editedTask.isShared !== selectedTask.task.isShared) {
+      if (editedTask.isShared) {
+        // Muuttui jaetuksi - lisää kaikille
+        setPeople(people.map(person => {
+          const hasTask = person.tasks.some(t => t.id === editedTask.id);
+          if (!hasTask) {
+            return { ...person, tasks: [...person.tasks, { ...editedTask, assignedTo: undefined }] };
+          } else {
+            return {
+              ...person,
+              tasks: person.tasks.map(task => 
+                task.id === editedTask.id ? { ...editedTask, assignedTo: undefined } : task
+              )
+            };
+          }
+        }));
+      } else {
+        // Muuttui henkilökohtaiseksi - poista muilta, pidä vain määrätyllä henkilöllä
+        const assignedPersonId = editedTask.assignedTo || selectedTask.personId;
+        setPeople(people.map(person => {
+          if (person.id === assignedPersonId) {
+            return {
+              ...person,
+              tasks: person.tasks.map(task => 
+                task.id === editedTask.id ? { ...editedTask } : task
+              )
+            };
+          } else {
+            return {
+              ...person,
+              tasks: person.tasks.filter(task => task.id !== editedTask.id)
+            };
+          }
+        }));
+      }
+    } else if (editedTask.isShared) {
+      // Jaettu tehtävä - päivitä kaikille
       setPeople(people.map(person => ({
         ...person,
         tasks: person.tasks.map(task => 
@@ -218,17 +326,41 @@ const TodoLists: React.FC = () => {
         )
       })));
     } else {
-      // Henkilökohtainen tehtävä
-      setPeople(people.map(person => 
-        person.id === selectedTask.personId 
-          ? { 
-              ...person, 
-              tasks: person.tasks.map(task => 
-                task.id === editedTask.id ? { ...editedTask } : task
-              )
-            }
-          : person
-      ));
+      // Henkilökohtainen tehtävä - tarkista onko suorittaja vaihtunut
+      const oldAssignedTo = selectedTask.task.assignedTo || selectedTask.personId;
+      const newAssignedTo = editedTask.assignedTo || selectedTask.personId;
+      
+      if (oldAssignedTo !== newAssignedTo) {
+        // Siirrä tehtävä toiselle henkilölle
+        setPeople(people.map(person => {
+          if (person.id === oldAssignedTo) {
+            // Poista vanhalta henkilöltä
+            return {
+              ...person,
+              tasks: person.tasks.filter(task => task.id !== editedTask.id)
+            };
+          } else if (person.id === newAssignedTo) {
+            // Lisää uudelle henkilölle
+            return {
+              ...person,
+              tasks: [...person.tasks, { ...editedTask }]
+            };
+          }
+          return person;
+        }));
+      } else {
+        // Päivitä samalle henkilölle
+        setPeople(people.map(person => 
+          person.id === newAssignedTo 
+            ? { 
+                ...person, 
+                tasks: person.tasks.map(task => 
+                  task.id === editedTask.id ? { ...editedTask } : task
+                )
+              }
+            : person
+        ));
+      }
     }
 
     setIsEditingTask(false);
@@ -547,12 +679,30 @@ const TodoLists: React.FC = () => {
     </div>
   );
 
+  // Järjestä henkilöt: ensimmäiset kaksi ylärivi, loput alemmas
+  const getPersonLayout = () => {
+    const firstRowPeople = people.slice(0, 2);
+    const additionalPeople = people.slice(2);
+    return { firstRowPeople, additionalPeople };
+  };
+
+  const { firstRowPeople, additionalPeople } = getPersonLayout();
+
   return (
     <div className="space-y-6">
       {/* Otsikko */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">Perheen tehtävälistat</h2>
-        <p className="text-slate-600">Hallinnoi päivittäisiä tehtäviä ja suunnittele viikkoa</p>
+      <div className="flex items-center justify-between">
+        <div className="text-center flex-1">
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Perheen tehtävälistat</h2>
+          <p className="text-slate-600">Hallinnoi päivittäisiä tehtäviä ja suunnittele viikkoa</p>
+        </div>
+        <button
+          onClick={() => setShowAddPersonModal(true)}
+          className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+        >
+          <UserPlus className="h-4 w-4" />
+          <span>Lisää henkilö</span>
+        </button>
       </div>
 
       {/* Viikon aikana hoidettavat tehtävät - Oma osio */}
@@ -637,9 +787,9 @@ const TodoLists: React.FC = () => {
         </div>
       </div>
 
-      {/* Yksittäiset tehtävälistat - Aina rinnakkain */}
+      {/* Ensimmäinen rivi - Aina kaksi henkilöä rinnakkain */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {people.map(person => {
+        {firstRowPeople.map(person => {
           const currentView = personViews[person.id] || 'today';
           const personStats = getTaskStats(person, currentView);
           
@@ -698,7 +848,7 @@ const TodoLists: React.FC = () => {
                 <div className="w-full bg-white rounded-full h-2 mb-1">
                   <div 
                     className={`h-2 rounded-full transition-all duration-300 ${
-                      person.color === 'text-blue-600' ? 'bg-blue-600' : 'bg-purple-600'
+                      person.color.replace('text-', 'bg-')
                     }`}
                     style={{ width: `${personStats.percentage}%` }}
                   ></div>
@@ -810,7 +960,7 @@ const TodoLists: React.FC = () => {
                         <span className="text-xs font-medium">Kumpi kerkeää -tehtävä</span>
                       </div>
                       <p className="text-xs text-orange-700 mt-1">
-                        Näkyy molempien listoissa. Ensimmäinen merkitsijä saa kunnian!
+                        Näkyy kaikkien listoissa. Ensimmäinen merkitsijä saa kunnian!
                       </p>
                     </div>
                   )}
@@ -820,6 +970,288 @@ const TodoLists: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Lisähenkilöt - Mukautuva asettelu */}
+      {additionalPeople.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {additionalPeople.map(person => {
+            const currentView = personViews[person.id] || 'today';
+            const personStats = getTaskStats(person, currentView);
+            
+            return (
+              <div key={person.id} className="bg-white rounded-xl border border-slate-200/50 p-4 relative">
+                {/* Poista-painike */}
+                <button
+                  onClick={() => deletePerson(person.id)}
+                  className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition-colors duration-200"
+                  title="Poista henkilö"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+
+                {/* Henkilön otsikko ja näkymävalinnat */}
+                <div className="flex items-center justify-between mb-4 pr-8">
+                  <div className="flex items-center space-x-2">
+                    <div className={`${person.bgColor} p-2 rounded-lg`}>
+                      <User className={`h-4 w-4 ${person.color}`} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-800">{person.name}</h3>
+                      <p className="text-xs text-slate-600">
+                        {getFilteredTasks(person, currentView).filter(task => !task.completed).length} jäljellä
+                        {currentView === 'today' ? ' tänään' : ' viikolla'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Näkymävalinnat */}
+                <div className="flex items-center bg-slate-100 rounded-lg p-1 mb-4">
+                  <button
+                    onClick={() => setPersonView(person.id, 'today')}
+                    className={`px-2 py-1 rounded-md text-xs font-medium transition-colors duration-200 ${
+                      currentView === 'today' 
+                        ? 'bg-white text-slate-800 shadow' 
+                        : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                  >
+                    Tänään
+                  </button>
+                  <button
+                    onClick={() => setPersonView(person.id, 'week')}
+                    className={`px-2 py-1 rounded-md text-xs font-medium transition-colors duration-200 ${
+                      currentView === 'week' 
+                        ? 'bg-white text-slate-800 shadow' 
+                        : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                  >
+                    Viikko
+                  </button>
+                </div>
+
+                {/* Henkilön edistyminen */}
+                <div className={`${person.bgColor} rounded-lg p-3 border border-slate-200/50 mb-4`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-slate-800">
+                      {currentView === 'today' ? 'Tänään' : 'Viikko'}
+                    </span>
+                    <span className="text-xs text-slate-600">
+                      {personStats.completed}/{personStats.total}
+                    </span>
+                  </div>
+                  <div className="w-full bg-white rounded-full h-2 mb-1">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        person.color.replace('text-', 'bg-')
+                      }`}
+                      style={{ width: `${personStats.percentage}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-slate-600">
+                    {personStats.percentage}% valmis
+                  </div>
+                </div>
+
+                {/* Tehtävälista tai kalenterinäkymä */}
+                <div className="mb-4">
+                  {currentView === 'week' ? (
+                    // Kalenterimallinen viikkonäkymä
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-semibold text-slate-800 flex items-center space-x-2">
+                        <Calendar className="h-4 w-4 text-blue-600" />
+                        <span>Viikkokalenteri</span>
+                      </h4>
+                      {renderWeekCalendar(person)}
+                    </div>
+                  ) : (
+                    // Tämän päivän listanäkymä
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {getFilteredTasks(person, currentView).map(task => 
+                        renderTaskItem(task, person.id)
+                      )}
+                      
+                      {getFilteredTasks(person, currentView).length === 0 && (
+                        <div className="text-center py-6 text-slate-500">
+                          <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">Ei tehtäviä tänään</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Lisää uusi tehtävä - Kompakti versio */}
+                <div className="border-t border-slate-200 pt-4">
+                  <div className="space-y-3">
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        placeholder="Uusi tehtävä..."
+                        value={newTask[person.id] || ''}
+                        onChange={(e) => setNewTask({ ...newTask, [person.id]: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && addTask(person.id)}
+                        className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <button
+                        onClick={() => addTask(person.id)}
+                        className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors duration-200 flex items-center"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                    
+                    {/* Kompaktit asetukset */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <select
+                        value={selectedPriority[person.id] || 'medium'}
+                        onChange={(e) => setSelectedPriority({ ...selectedPriority, [person.id]: e.target.value as 'low' | 'medium' | 'high' })}
+                        className="text-xs border border-slate-300 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value="low">Matala</option>
+                        <option value="medium">Keskitaso</option>
+                        <option value="high">Korkea</option>
+                      </select>
+
+                      <select
+                        value={taskDueDateType[person.id] || 'none'}
+                        onChange={(e) => setTaskDueDateType({ ...taskDueDateType, [person.id]: e.target.value as any })}
+                        className="text-xs border border-slate-300 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value="none">Tänään</option>
+                        <option value="specific">Tietty päivä</option>
+                        <option value="within_week">Viikon sisällä</option>
+                      </select>
+                    </div>
+
+                    {taskDueDateType[person.id] === 'specific' && (
+                      <input
+                        type="date"
+                        value={taskDueDate[person.id] || ''}
+                        onChange={(e) => setTaskDueDate({ ...taskDueDate, [person.id]: e.target.value })}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    )}
+
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isSharedTask[person.id] || false}
+                        onChange={(e) => setIsSharedTask({ ...isSharedTask, [person.id]: e.target.checked })}
+                        className="text-orange-600 focus:ring-orange-500 rounded"
+                      />
+                      <span className="text-xs text-slate-600 flex items-center space-x-1">
+                        <Users className="h-3 w-3" />
+                        <span>Jaettu tehtävä</span>
+                      </span>
+                    </label>
+
+                    {/* Selitys jaetulle tehtävälle */}
+                    {isSharedTask[person.id] && (
+                      <div className="bg-orange-50 border border-orange-200 rounded p-2">
+                        <div className="flex items-center space-x-1 text-orange-800">
+                          <Clock className="h-3 w-3" />
+                          <span className="text-xs font-medium">Kumpi kerkeää -tehtävä</span>
+                        </div>
+                        <p className="text-xs text-orange-700 mt-1">
+                          Näkyy kaikkien listoissa. Ensimmäinen merkitsijä saa kunnian!
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Lisää henkilö -modaali */}
+      {showAddPersonModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-slate-800">Lisää uusi henkilö</h3>
+              <button
+                onClick={() => setShowAddPersonModal(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors duration-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Nimi
+                </label>
+                <input
+                  type="text"
+                  value={newPersonName}
+                  onChange={(e) => setNewPersonName(e.target.value)}
+                  placeholder="Syötä henkilön nimi..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">
+                  Väri
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {availableColors.map((colorOption) => (
+                    <button
+                      key={colorOption.color}
+                      onClick={() => setNewPersonColor(colorOption.color)}
+                      className={`p-3 rounded-lg border-2 transition-colors duration-200 ${
+                        newPersonColor === colorOption.color 
+                          ? 'border-slate-800' 
+                          : 'border-slate-300 hover:border-slate-400'
+                      } ${colorOption.bgColor}`}
+                      title={colorOption.label}
+                    >
+                      <User className={`h-5 w-5 ${colorOption.color} mx-auto`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Esikatselu */}
+              {newPersonName && (
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <h4 className="text-sm font-medium text-slate-800 mb-2">Esikatselu:</h4>
+                  <div className="flex items-center space-x-2">
+                    <div className={`${availableColors.find(c => c.color === newPersonColor)?.bgColor} p-2 rounded-lg`}>
+                      <User className={`h-4 w-4 ${newPersonColor}`} />
+                    </div>
+                    <span className="font-medium text-slate-800">{newPersonName}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowAddPersonModal(false)}
+                className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors duration-200"
+              >
+                Peruuta
+              </button>
+              <button
+                onClick={addPerson}
+                disabled={!newPersonName.trim()}
+                className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                  newPersonName.trim()
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                Lisää henkilö
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tehtävän tarkastelu/muokkaus -modaali */}
       {showTaskModal && selectedTask && (
@@ -975,7 +1407,11 @@ const TodoLists: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={editedTask.isShared || false}
-                          onChange={(e) => setEditedTask({ ...editedTask, isShared: e.target.checked })}
+                          onChange={(e) => setEditedTask({ 
+                            ...editedTask, 
+                            isShared: e.target.checked,
+                            assignedTo: e.target.checked ? undefined : (editedTask.assignedTo || selectedTask.personId)
+                          })}
                           className="text-orange-600 focus:ring-orange-500 rounded"
                         />
                         <span className="text-sm text-slate-700 flex items-center space-x-1">
@@ -1005,19 +1441,33 @@ const TodoLists: React.FC = () => {
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Suorittaja
                     </label>
-                    <div className="bg-slate-50 p-3 rounded-lg">
-                      <p className="text-slate-800">
-                        {editedTask.isShared 
-                          ? 'Kumpi tahansa (jaettu tehtävä)' 
-                          : people.find(p => p.id === selectedTask.personId)?.name || 'Tuntematon'
-                        }
-                      </p>
-                      {editedTask.completed && editedTask.completedBy && (
-                        <p className="text-sm text-green-600 mt-1">
-                          ✓ Suorittanut: {editedTask.completedBy}
+                    {isEditingTask && !editedTask.isShared ? (
+                      <select
+                        value={editedTask.assignedTo || selectedTask.personId}
+                        onChange={(e) => setEditedTask({ ...editedTask, assignedTo: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {people.map(person => (
+                          <option key={person.id} value={person.id}>
+                            {person.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="bg-slate-50 p-3 rounded-lg">
+                        <p className="text-slate-800">
+                          {editedTask.isShared 
+                            ? 'Kuka tahansa (jaettu tehtävä)' 
+                            : people.find(p => p.id === (editedTask.assignedTo || selectedTask.personId))?.name || 'Tuntematon'
+                          }
                         </p>
-                      )}
-                    </div>
+                        {editedTask.completed && editedTask.completedBy && (
+                          <p className="text-sm text-green-600 mt-1">
+                            ✓ Suorittanut: {editedTask.completedBy}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Tila */}
