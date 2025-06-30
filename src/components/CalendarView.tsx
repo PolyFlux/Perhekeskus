@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, MapPin, X, Settings, Edit2, Trash2 } from 'lucide-react';
 
 interface Event {
@@ -37,11 +37,12 @@ interface NewCategory {
 
 const CalendarView: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<'month' | 'week'>('month');
+  const [view, setView] = useState<'month' | 'week'>('week');
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<EventCategory | null>(null);
+  const weekScrollRef = useRef<HTMLDivElement>(null);
 
   // Oletuskategoriat
   const [categories, setCategories] = useState<EventCategory[]>([
@@ -60,6 +61,9 @@ const CalendarView: React.FC = () => {
     { id: 2, title: 'Jalkapalloharjoitukset', date: new Date(2025, 0, 16), startTime: '18:00', endTime: '19:30', categoryId: 'sports', description: 'Viikkoharjoitukset', location: 'Urheilukeskus' },
     { id: 3, title: 'Perhepäivällinen', date: new Date(2025, 0, 18), startTime: '19:00', endTime: '21:00', categoryId: 'family', description: 'Isovanhempien kanssa', location: 'Koti' },
     { id: 4, title: 'Koulukokous', date: new Date(2025, 0, 20), startTime: '15:00', endTime: '16:00', categoryId: 'school', description: 'Vanhempainilta', location: 'Koulu' },
+    { id: 5, title: 'Aamukokous', date: new Date(2025, 0, 21), startTime: '08:00', endTime: '09:00', categoryId: 'school', description: 'Tiimin palaveri', location: 'Toimisto' },
+    { id: 6, title: 'Lounastapahtuma', date: new Date(2025, 0, 21), startTime: '12:00', endTime: '13:30', categoryId: 'social', description: 'Ystävien kanssa', location: 'Ravintola' },
+    { id: 7, title: 'Iltaharjoitus', date: new Date(2025, 0, 21), startTime: '19:00', endTime: '20:30', categoryId: 'sports', description: 'Kuntosali', location: 'Liikuntakeskus' },
   ]);
 
   const [newEvent, setNewEvent] = useState<NewEvent>({
@@ -99,6 +103,15 @@ const CalendarView: React.FC = () => {
     { value: 'bg-lime-500', label: 'Lime', preview: 'bg-lime-500' },
     { value: 'bg-slate-500', label: 'Harmaa', preview: 'bg-slate-500' },
   ];
+
+  // Skrollaa viikkonäkymässä klo 7:00 kohdalle sivun latautuessa
+  useEffect(() => {
+    if (view === 'week' && weekScrollRef.current) {
+      // Skrollaa klo 7:00 kohdalle (7 * 48px per tunti)
+      const scrollPosition = 7 * 48;
+      weekScrollRef.current.scrollTop = scrollPosition;
+    }
+  }, [view]);
 
   const getCategoryById = (categoryId: string) => {
     return categories.find(cat => cat.id === categoryId) || categories.find(cat => cat.id === 'other')!;
@@ -304,8 +317,9 @@ const CalendarView: React.FC = () => {
       <div className="bg-white rounded-xl border border-slate-200/50 overflow-hidden">
         <div className="grid grid-cols-7 bg-slate-50">
           {dayNames.map((day) => (
-            <div key={day} className="p-4 text-center font-medium text-slate-700 border-r border-slate-200 last:border-r-0">
-              {day}
+            <div key={day} className="p-2 md:p-4 text-center font-medium text-slate-700 border-r border-slate-200 last:border-r-0 text-xs md:text-sm">
+              <span className="hidden sm:inline">{day}</span>
+              <span className="sm:hidden">{day.charAt(0)}</span>
             </div>
           ))}
         </div>
@@ -318,17 +332,17 @@ const CalendarView: React.FC = () => {
             return (
               <div
                 key={index}
-                className={`min-h-24 p-2 border-r border-b border-slate-200 last:border-r-0 hover:bg-slate-50 transition-colors duration-200 ${
+                className={`min-h-16 md:min-h-24 p-1 md:p-2 border-r border-b border-slate-200 last:border-r-0 hover:bg-slate-50 transition-colors duration-200 ${
                   !isCurrentMonth ? 'bg-slate-50/50 text-slate-400' : ''
                 }`}
               >
-                <div className={`text-sm font-medium mb-1 ${
-                  isToday ? 'bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center' : ''
+                <div className={`text-xs md:text-sm font-medium mb-1 ${
+                  isToday ? 'bg-blue-600 text-white rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center text-xs' : ''
                 }`}>
                   {day.getDate()}
                 </div>
                 <div className="space-y-1">
-                  {dayEvents.map((event) => {
+                  {dayEvents.slice(0, 2).map((event) => {
                     const category = getCategoryById(event.categoryId);
                     return (
                       <div
@@ -336,7 +350,7 @@ const CalendarView: React.FC = () => {
                         className={`${category.color} text-white text-xs p-1 rounded truncate group relative cursor-pointer`}
                         title={`${event.title} - ${formatEventTime(event)}${event.location ? ` @ ${event.location}` : ''} (${category.name})`}
                       >
-                        <span>{event.title}</span>
+                        <span className="text-xs">{event.title}</span>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -349,6 +363,11 @@ const CalendarView: React.FC = () => {
                       </div>
                     );
                   })}
+                  {dayEvents.length > 2 && (
+                    <div className="text-xs text-slate-500 text-center">
+                      +{dayEvents.length - 2} lisää
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -364,17 +383,21 @@ const CalendarView: React.FC = () => {
     
     return (
       <div className="bg-white rounded-xl border border-slate-200/50 overflow-hidden">
-        <div className="grid grid-cols-8 bg-slate-50">
-          <div className="p-4 border-r border-slate-200"></div>
+        {/* Päivien otsikot */}
+        <div className="grid grid-cols-8 bg-slate-50 sticky top-0 z-10">
+          <div className="p-2 md:p-4 border-r border-slate-200 text-xs md:text-sm font-medium text-slate-700">Aika</div>
           {days.map((day, index) => {
             const isToday = isSameDay(day, new Date());
             const dayOfWeek = day.getDay();
             const dayName = dayOfWeek === 0 ? 'Su' : dayNames[dayOfWeek - 1];
             return (
-              <div key={index} className="p-4 text-center border-r border-slate-200 last:border-r-0">
-                <div className="font-medium text-slate-700">{dayName}</div>
-                <div className={`text-lg font-semibold mt-1 ${
-                  isToday ? 'bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto' : 'text-slate-800'
+              <div key={index} className="p-2 md:p-4 text-center border-r border-slate-200 last:border-r-0">
+                <div className="font-medium text-slate-700 text-xs md:text-sm">
+                  <span className="hidden sm:inline">{dayName}</span>
+                  <span className="sm:hidden">{dayName.charAt(0)}</span>
+                </div>
+                <div className={`text-sm md:text-lg font-semibold mt-1 ${
+                  isToday ? 'bg-blue-600 text-white rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center mx-auto text-xs md:text-base' : 'text-slate-800'
                 }`}>
                   {day.getDate()}
                 </div>
@@ -382,11 +405,18 @@ const CalendarView: React.FC = () => {
             );
           })}
         </div>
-        <div className="max-h-96 overflow-y-auto">
+        
+        {/* Vieritettävä aikataulu */}
+        <div 
+          ref={weekScrollRef}
+          className="max-h-[60vh] md:max-h-96 overflow-y-auto"
+        >
           {hours.map((hour) => (
-            <div key={hour} className="grid grid-cols-8 border-b border-slate-200 last:border-b-0">
-              <div className="p-2 text-sm text-slate-600 border-r border-slate-200 text-right">
-                {hour === 0 ? '00:00' : hour < 10 ? `0${hour}:00` : `${hour}:00`}
+            <div key={hour} className="grid grid-cols-8 border-b border-slate-200 last:border-b-0" style={{ minHeight: '48px' }}>
+              <div className="p-1 md:p-2 text-xs md:text-sm text-slate-600 border-r border-slate-200 text-right flex items-start justify-end">
+                <span className="bg-slate-50 px-1 rounded text-xs">
+                  {hour === 0 ? '00:00' : hour < 10 ? `0${hour}:00` : `${hour}:00`}
+                </span>
               </div>
               {days.map((day, dayIndex) => {
                 const dayEvents = getEventsForDay(day).filter(event => {
@@ -395,23 +425,40 @@ const CalendarView: React.FC = () => {
                 });
                 
                 return (
-                  <div key={dayIndex} className="p-1 min-h-12 border-r border-slate-200 last:border-r-0 hover:bg-slate-50 transition-colors duration-200">
+                  <div key={dayIndex} className="p-1 border-r border-slate-200 last:border-r-0 hover:bg-slate-50 transition-colors duration-200 relative">
                     {dayEvents.map((event) => {
                       const category = getCategoryById(event.categoryId);
+                      const startMinutes = parseInt(event.startTime.split(':')[1]);
+                      const endHour = parseInt(event.endTime.split(':')[0]);
+                      const endMinutes = parseInt(event.endTime.split(':')[1]);
+                      
+                      // Laske tapahtuman kesto ja sijainti
+                      const durationInMinutes = (endHour * 60 + endMinutes) - (hour * 60 + startMinutes);
+                      const height = Math.max(20, (durationInMinutes / 60) * 48);
+                      const topOffset = (startMinutes / 60) * 48;
+                      
                       return (
                         <div
                           key={event.id}
-                          className={`${category.color} text-white text-xs p-1 rounded mb-1 group relative cursor-pointer`}
+                          className={`${category.color} text-white text-xs p-1 md:p-2 rounded mb-1 group relative cursor-pointer absolute left-1 right-1 z-20`}
+                          style={{ 
+                            top: `${topOffset}px`,
+                            height: `${height}px`,
+                            minHeight: '20px'
+                          }}
                           title={`${event.title} - ${formatEventTime(event)}${event.location ? ` @ ${event.location}` : ''} (${category.name})`}
                         >
-                          <div>{event.title}</div>
-                          <div className="text-xs opacity-75">{formatEventTime(event)}</div>
+                          <div className="font-medium truncate text-xs">{event.title}</div>
+                          <div className="text-xs opacity-75 truncate">{formatEventTime(event)}</div>
+                          {event.location && height > 40 && (
+                            <div className="text-xs opacity-75 truncate">{event.location}</div>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteEvent(event.id);
                             }}
-                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-3 h-3 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                           >
                             ×
                           </button>
@@ -432,7 +479,7 @@ const CalendarView: React.FC = () => {
     <div className="space-y-6">
       {/* Otsikko */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
           <h2 className="text-2xl font-bold text-slate-800">Kalenteri</h2>
           <div className="flex items-center space-x-2">
             <button
@@ -441,7 +488,7 @@ const CalendarView: React.FC = () => {
             >
               <ChevronLeft className="h-5 w-5 text-slate-600" />
             </button>
-            <h3 className="text-lg font-semibold text-slate-800 min-w-48 text-center">
+            <h3 className="text-sm md:text-lg font-semibold text-slate-800 min-w-32 md:min-w-48 text-center">
               {view === 'month' 
                 ? `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`
                 : `Viikko ${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`
@@ -492,8 +539,8 @@ const CalendarView: React.FC = () => {
         </div>
       </div>
 
-      {/* Kategorialegenda */}
-      <div className="bg-white rounded-xl border border-slate-200/50 p-4">
+      {/* Kategorialegenda - piilotettu pienillä näytöillä */}
+      <div className="hidden md:block bg-white rounded-xl border border-slate-200/50 p-4">
         <h3 className="text-sm font-medium text-slate-800 mb-3">Kategoriat</h3>
         <div className="flex flex-wrap gap-2">
           {categories.map((category) => (
@@ -509,47 +556,47 @@ const CalendarView: React.FC = () => {
       {view === 'month' ? renderMonthView() : renderWeekView()}
 
       {/* Tulevat tapahtumat */}
-      <div className="bg-white rounded-xl border border-slate-200/50 p-6">
+      <div className="bg-white rounded-xl border border-slate-200/50 p-4 md:p-6">
         <h3 className="text-lg font-semibold text-slate-800 mb-4">Tulevat tapahtumat</h3>
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-64 md:max-h-80 overflow-y-auto">
           {events
             .filter(event => event.date >= new Date())
             .sort((a, b) => a.date.getTime() - b.date.getTime())
             .map((event) => {
               const category = getCategoryById(event.categoryId);
               return (
-                <div key={event.id} className="flex items-center space-x-4 p-3 rounded-lg border border-slate-200/50 hover:bg-slate-50 transition-colors duration-200 group">
-                  <div className={`w-4 h-4 rounded-full ${category.color}`}></div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium text-slate-800">{event.title}</span>
-                      <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                <div key={event.id} className="flex items-center space-x-3 md:space-x-4 p-3 rounded-lg border border-slate-200/50 hover:bg-slate-50 transition-colors duration-200 group">
+                  <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full ${category.color} flex-shrink-0`}></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                      <span className="font-medium text-slate-800 truncate">{event.title}</span>
+                      <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full w-fit">
                         {category.name}
                       </span>
                     </div>
-                    <div className="text-sm text-slate-600 flex items-center space-x-4">
+                    <div className="text-sm text-slate-600 flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0">
                       <span className="flex items-center space-x-1">
-                        <CalendarIcon className="h-3 w-3" />
+                        <CalendarIcon className="h-3 w-3 flex-shrink-0" />
                         <span>{event.date.toLocaleDateString('fi-FI')}</span>
                       </span>
                       <span className="flex items-center space-x-1">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="h-3 w-3 flex-shrink-0" />
                         <span>{formatEventTime(event)}</span>
                       </span>
                       {event.location && (
                         <span className="flex items-center space-x-1">
-                          <MapPin className="h-3 w-3" />
-                          <span>{event.location}</span>
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{event.location}</span>
                         </span>
                       )}
                     </div>
                     {event.description && (
-                      <div className="text-sm text-slate-500 mt-1">{event.description}</div>
+                      <div className="text-sm text-slate-500 mt-1 truncate">{event.description}</div>
                     )}
                   </div>
                   <button
                     onClick={() => deleteEvent(event.id)}
-                    className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all duration-200"
+                    className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all duration-200 flex-shrink-0"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -570,7 +617,7 @@ const CalendarView: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
             {/* Kiinteä otsikko */}
-            <div className="p-6 border-b border-slate-200 flex-shrink-0">
+            <div className="p-4 md:p-6 border-b border-slate-200 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-slate-800">Hallinnoi kategorioita</h3>
                 <div className="flex items-center space-x-2">
@@ -592,7 +639,7 @@ const CalendarView: React.FC = () => {
             </div>
             
             {/* Vieritettävä sisältö */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
               <div className="space-y-3">
                 {categories.map((category) => {
                   const eventCount = events.filter(event => event.categoryId === category.id).length;
@@ -646,10 +693,10 @@ const CalendarView: React.FC = () => {
                         </div>
                       ) : (
                         <>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="font-medium text-slate-800">{category.name}</div>
                             {category.description && (
-                              <div className="text-sm text-slate-600">{category.description}</div>
+                              <div className="text-sm text-slate-600 truncate">{category.description}</div>
                             )}
                             <div className="text-xs text-slate-500 mt-1">
                               {eventCount} tapahtuma{eventCount !== 1 ? 'a' : ''}
@@ -688,7 +735,7 @@ const CalendarView: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] flex flex-col">
             {/* Kiinteä otsikko */}
-            <div className="p-6 border-b border-slate-200 flex-shrink-0">
+            <div className="p-4 md:p-6 border-b border-slate-200 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-slate-800">Luo uusi kategoria</h3>
                 <button
@@ -701,7 +748,7 @@ const CalendarView: React.FC = () => {
             </div>
             
             {/* Vieritettävä sisältö */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -764,7 +811,7 @@ const CalendarView: React.FC = () => {
             </div>
             
             {/* Kiinteät painikkeet */}
-            <div className="p-6 border-t border-slate-200 flex-shrink-0">
+            <div className="p-4 md:p-6 border-t border-slate-200 flex-shrink-0">
               <div className="flex items-center justify-end space-x-3">
                 <button
                   onClick={() => setShowAddCategoryModal(false)}
@@ -794,7 +841,7 @@ const CalendarView: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] flex flex-col">
             {/* Kiinteä otsikko */}
-            <div className="p-6 border-b border-slate-200 flex-shrink-0">
+            <div className="p-4 md:p-6 border-b border-slate-200 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-slate-800">Lisää uusi tapahtuma</h3>
                 <button
@@ -807,7 +854,7 @@ const CalendarView: React.FC = () => {
             </div>
             
             {/* Vieritettävä sisältö */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
               <div className="space-y-4">
                 {/* Otsikko */}
                 <div>
@@ -947,7 +994,7 @@ const CalendarView: React.FC = () => {
             </div>
             
             {/* Kiinteät painikkeet */}
-            <div className="p-6 border-t border-slate-200 flex-shrink-0">
+            <div className="p-4 md:p-6 border-t border-slate-200 flex-shrink-0">
               <div className="flex items-center justify-end space-x-3">
                 <button
                   onClick={() => setShowAddEventModal(false)}
