@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, X, User, Calendar, Clock, AlertCircle, UserPlus, Trash2 } from 'lucide-react';
+import { Plus, Check, X, User, Calendar, Clock, AlertCircle, UserPlus, Trash2, Users } from 'lucide-react';
 
 interface Task {
   id: number;
@@ -8,7 +8,8 @@ interface Task {
   priority: 'low' | 'medium' | 'high';
   dueDate?: Date;
   category: string;
-  assignedTo: string;
+  assignedTo: string[];
+  assignmentType: 'individual' | 'shared';
 }
 
 interface PersonViewState {
@@ -21,10 +22,11 @@ const TodoLists: React.FC = () => {
   const [newPersonName, setNewPersonName] = useState('');
 
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, title: 'Ruokaostokset', completed: false, priority: 'high', dueDate: new Date(), category: 'Kotitalous', assignedTo: 'Äiti' },
-    { id: 2, title: 'Hae kuivapesu', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 86400000), category: 'Asiointi', assignedTo: 'Isi' },
-    { id: 3, title: 'Työprojektin deadline', completed: false, priority: 'high', dueDate: new Date(Date.now() + 604800000), category: 'Työ', assignedTo: 'Isi' },
-    { id: 4, title: 'Synttärilahjan osto', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 1209600000), category: 'Perhe', assignedTo: 'Äiti' },
+    { id: 1, title: 'Ruokaostokset', completed: false, priority: 'high', dueDate: new Date(), category: 'Kotitalous', assignedTo: ['Äiti'], assignmentType: 'individual' },
+    { id: 2, title: 'Hae kuivapesu', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 86400000), category: 'Asiointi', assignedTo: ['Isi'], assignmentType: 'individual' },
+    { id: 3, title: 'Työprojektin deadline', completed: false, priority: 'high', dueDate: new Date(Date.now() + 604800000), category: 'Työ', assignedTo: ['Isi'], assignmentType: 'individual' },
+    { id: 4, title: 'Synttärilahjan osto', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 1209600000), category: 'Perhe', assignedTo: ['Äiti'], assignmentType: 'individual' },
+    { id: 5, title: 'Siivoa olohuone', completed: false, priority: 'medium', dueDate: new Date(), category: 'Kotitalous', assignedTo: ['Isi', 'Äiti'], assignmentType: 'shared' },
   ]);
 
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
@@ -38,7 +40,9 @@ const TodoLists: React.FC = () => {
     priority: 'medium' as 'low' | 'medium' | 'high',
     dueDate: new Date().toISOString().split('T')[0],
     category: 'Kotitalous',
-    assignedTo: 'Äiti'
+    assignmentType: 'individual' as 'individual' | 'shared',
+    assignedTo: ['Äiti'],
+    selectedPeople: [] as string[]
   });
 
   const categories = ['Kotitalous', 'Asiointi', 'Urheilu', 'Koulu', 'Terveys', 'Työ', 'Perhe', 'Muu'];
@@ -87,13 +91,15 @@ const TodoLists: React.FC = () => {
       return;
     }
 
-    // Siirrä henkilön tehtävät ensimmäiselle henkilölle
-    const firstPerson = people[0];
-    setTasks(tasks.map(task => 
-      task.assignedTo === personName 
-        ? { ...task, assignedTo: firstPerson }
-        : task
-    ));
+    // Poista henkilö tehtävien assignedTo-listoista
+    setTasks(tasks.map(task => {
+      const updatedAssignedTo = task.assignedTo.filter(person => person !== personName);
+      // Jos tehtävällä ei ole enää ketään vastuussa, siirrä ensimmäiselle henkilölle
+      if (updatedAssignedTo.length === 0) {
+        return { ...task, assignedTo: [people[0]], assignmentType: 'individual' as const };
+      }
+      return { ...task, assignedTo: updatedAssignedTo };
+    }));
 
     // Poista henkilö
     setPeople(people.filter(p => p !== personName));
@@ -112,6 +118,13 @@ const TodoLists: React.FC = () => {
   const addTask = () => {
     if (!newTask.title.trim()) return;
 
+    let assignedTo: string[];
+    if (newTask.assignmentType === 'individual') {
+      assignedTo = [newTask.assignedTo[0]];
+    } else {
+      assignedTo = newTask.selectedPeople.length > 0 ? newTask.selectedPeople : people;
+    }
+
     const task: Task = {
       id: Date.now(),
       title: newTask.title.trim(),
@@ -119,7 +132,8 @@ const TodoLists: React.FC = () => {
       priority: newTask.priority,
       dueDate: new Date(newTask.dueDate),
       category: newTask.category,
-      assignedTo: newTask.assignedTo
+      assignedTo: assignedTo,
+      assignmentType: newTask.assignmentType
     };
 
     setTasks([...tasks, task]);
@@ -128,7 +142,9 @@ const TodoLists: React.FC = () => {
       priority: 'medium',
       dueDate: new Date().toISOString().split('T')[0],
       category: 'Kotitalous',
-      assignedTo: people[0] || 'Äiti'
+      assignmentType: 'individual',
+      assignedTo: [people[0] || 'Äiti'],
+      selectedPeople: []
     });
     setShowAddTaskModal(false);
   };
@@ -178,14 +194,14 @@ const TodoLists: React.FC = () => {
 
   const getTasksForDay = (person: string, date: Date) => {
     return tasks.filter(task => 
-      task.assignedTo === person && 
+      task.assignedTo.includes(person) && 
       task.dueDate && 
       isSameDay(task.dueDate, date)
     );
   };
 
   const getFilteredTasks = (person: string, view: 'today' | 'week' | 'upcoming') => {
-    const personTasks = tasks.filter(task => task.assignedTo === person);
+    const personTasks = tasks.filter(task => task.assignedTo.includes(person));
     
     switch (view) {
       case 'today':
@@ -200,7 +216,7 @@ const TodoLists: React.FC = () => {
   };
 
   const getPersonStats = (person: string) => {
-    const personTasks = tasks.filter(task => task.assignedTo === person);
+    const personTasks = tasks.filter(task => task.assignedTo.includes(person));
     const todayTasks = personTasks.filter(task => task.dueDate && isToday(task.dueDate));
     const completedToday = todayTasks.filter(task => task.completed).length;
     const totalToday = todayTasks.length;
@@ -234,6 +250,25 @@ const TodoLists: React.FC = () => {
       day: 'numeric', 
       month: 'numeric' 
     });
+  };
+
+  const formatAssignees = (task: Task) => {
+    if (task.assignmentType === 'shared') {
+      if (task.assignedTo.length === people.length) {
+        return 'Kuka tahansa';
+      }
+      return task.assignedTo.join(', ');
+    }
+    return task.assignedTo[0];
+  };
+
+  const togglePersonSelection = (person: string) => {
+    setNewTask(prev => ({
+      ...prev,
+      selectedPeople: prev.selectedPeople.includes(person)
+        ? prev.selectedPeople.filter(p => p !== person)
+        : [...prev.selectedPeople, person]
+    }));
   };
 
   const renderWeekView = (person: string) => {
@@ -300,9 +335,17 @@ const TodoLists: React.FC = () => {
                             <span className={`px-1 py-0.5 rounded text-xs border ${priorityColors[task.priority]}`}>
                               {task.priority === 'high' ? 'K' : task.priority === 'medium' ? 'K' : 'M'}
                             </span>
+                            {task.assignmentType === 'shared' && (
+                              <Users className="h-3 w-3 text-blue-500" title="Jaettu tehtävä" />
+                            )}
                           </div>
                           <div className="text-xs text-slate-500">
                             {task.category}
+                            {task.assignmentType === 'shared' && (
+                              <span className="ml-2 text-blue-600">
+                                ({formatAssignees(task)})
+                              </span>
+                            )}
                           </div>
                         </div>
                         
@@ -385,6 +428,12 @@ const TodoLists: React.FC = () => {
                     <span className={`px-2 py-1 rounded-full text-xs border ${priorityColors[task.priority]}`}>
                       {priorityLabels[task.priority]}
                     </span>
+                    {task.assignmentType === 'shared' && (
+                      <span className="flex items-center space-x-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                        <Users className="h-3 w-3" />
+                        <span>Jaettu</span>
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center space-x-3 text-xs text-slate-600">
                     <span className="bg-slate-200 px-2 py-1 rounded-full">
@@ -396,6 +445,11 @@ const TodoLists: React.FC = () => {
                       }`}>
                         <Calendar className="h-3 w-3" />
                         <span>{formatDate(task.dueDate)}</span>
+                      </span>
+                    )}
+                    {task.assignmentType === 'shared' && (
+                      <span className="text-blue-600">
+                        Vastuussa: {formatAssignees(task)}
                       </span>
                     )}
                   </div>
@@ -604,7 +658,7 @@ const TodoLists: React.FC = () => {
       {/* Lisää tehtävä -modaali */}
       {showAddTaskModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-slate-800">Lisää uusi tehtävä</h3>
               <button
@@ -627,18 +681,85 @@ const TodoLists: React.FC = () => {
                 />
               </div>
               
+              {/* Tehtävän tyyppi */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Vastuuhenkilö</label>
-                <select
-                  value={newTask.assignedTo}
-                  onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {people.map(person => (
-                    <option key={person} value={person}>{person}</option>
-                  ))}
-                </select>
+                <label className="block text-sm font-medium text-slate-700 mb-3">Tehtävän tyyppi</label>
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="assignmentType"
+                      value="individual"
+                      checked={newTask.assignmentType === 'individual'}
+                      onChange={(e) => setNewTask({ ...newTask, assignmentType: e.target.value as 'individual' | 'shared' })}
+                      className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <User className="h-4 w-4 text-slate-600" />
+                      <span className="text-slate-800">Henkilökohtainen tehtävä</span>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="assignmentType"
+                      value="shared"
+                      checked={newTask.assignmentType === 'shared'}
+                      onChange={(e) => setNewTask({ ...newTask, assignmentType: e.target.value as 'individual' | 'shared' })}
+                      className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4 text-blue-600" />
+                      <span className="text-slate-800">Jaettu tehtävä (kuka tahansa voi hoitaa)</span>
+                    </div>
+                  </label>
+                </div>
               </div>
+
+              {/* Vastuuhenkilö (henkilökohtainen tehtävä) */}
+              {newTask.assignmentType === 'individual' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Vastuuhenkilö</label>
+                  <select
+                    value={newTask.assignedTo[0] || people[0]}
+                    onChange={(e) => setNewTask({ ...newTask, assignedTo: [e.target.value] })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {people.map(person => (
+                      <option key={person} value={person}>{person}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Henkilövalinta (jaettu tehtävä) */}
+              {newTask.assignmentType === 'shared' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                    Kuka voi hoitaa tehtävän? (tyhjä = kuka tahansa)
+                  </label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-3">
+                    {people.map(person => (
+                      <label key={person} className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newTask.selectedPeople.includes(person)}
+                          onChange={() => togglePersonSelection(person)}
+                          className="text-blue-600 focus:ring-blue-500 rounded"
+                        />
+                        <span className="text-slate-800">{person}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="text-xs text-slate-600 mt-2">
+                    {newTask.selectedPeople.length === 0 
+                      ? 'Kuka tahansa voi hoitaa tehtävän'
+                      : `Valittu ${newTask.selectedPeople.length} henkilö${newTask.selectedPeople.length !== 1 ? 'ä' : ''}: ${newTask.selectedPeople.join(', ')}`
+                    }
+                  </div>
+                </div>
+              )}
               
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Eräpäivä</label>
@@ -683,6 +804,26 @@ const TodoLists: React.FC = () => {
                   ))}
                 </select>
               </div>
+
+              {/* Esikatselu */}
+              {newTask.title && (
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <h4 className="font-medium text-slate-800 mb-2">Esikatselu:</h4>
+                  <div className="text-sm text-slate-600">
+                    <p><strong>Tehtävä:</strong> {newTask.title}</p>
+                    <p><strong>Tyyppi:</strong> {newTask.assignmentType === 'individual' ? 'Henkilökohtainen' : 'Jaettu'}</p>
+                    <p><strong>Vastuussa:</strong> {
+                      newTask.assignmentType === 'individual' 
+                        ? newTask.assignedTo[0]
+                        : newTask.selectedPeople.length === 0 
+                          ? 'Kuka tahansa' 
+                          : newTask.selectedPeople.join(', ')
+                    }</p>
+                    <p><strong>Prioriteetti:</strong> {priorityLabels[newTask.priority]}</p>
+                    <p><strong>Kategoria:</strong> {newTask.category}</p>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center justify-end space-x-3 mt-6">
@@ -694,7 +835,12 @@ const TodoLists: React.FC = () => {
               </button>
               <button
                 onClick={addTask}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                disabled={!newTask.title.trim()}
+                className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                  newTask.title.trim()
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                }`}
               >
                 Lisää tehtävä
               </button>
