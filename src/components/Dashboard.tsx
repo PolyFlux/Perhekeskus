@@ -28,14 +28,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
     return new Intl.NumberFormat('fi-FI', { style: 'currency', currency: 'EUR' }).format(amount);
   };
 
-  // Hae tämän päivän ateriat
-  const getTodayMealsText = () => {
-    if (todayMeals.length === 0) {
+  // Hae tämän päivän lounas ja päivällinen
+  const getTodayMainMealsText = () => {
+    const mainMeals = todayMeals.filter(meal => 
+      meal.type === 'lunch' || meal.type === 'dinner'
+    );
+    
+    if (mainMeals.length === 0) {
       return 'Ei suunniteltuja aterioita';
     }
     
-    const mealNames = todayMeals.map(meal => meal.name).join(', ');
-    return mealNames.length > 50 ? mealNames.substring(0, 50) + '...' : mealNames;
+    const mealTexts = mainMeals.map(meal => {
+      const typeLabel = meal.type === 'lunch' ? 'Lounas' : 'Päivällinen';
+      return `${typeLabel}: ${meal.name}`;
+    });
+    
+    return mealTexts.join(' • ');
   };
 
   const quickStats = [
@@ -57,7 +65,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
     },
     { 
       label: 'Tämän päivän ruokalista', 
-      value: getTodayMealsText(), 
+      value: getTodayMainMealsText(), 
       color: 'text-orange-600', 
       bgColor: 'bg-orange-50',
       icon: UtensilsCrossed,
@@ -207,51 +215,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
           </div>
         )}
       </div>
-
-      {/* Tämän päivän ateriat */}
-      {todayMeals.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200/50 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-slate-800 flex items-center space-x-2">
-              <UtensilsCrossed className="h-5 w-5 text-orange-600" />
-              <span>Tämän päivän ateriat</span>
-            </h3>
-            <button
-              onClick={() => onNavigate('meals')}
-              className="text-orange-600 hover:text-orange-700 font-medium text-sm transition-colors duration-200"
-            >
-              Avaa ruokasuunnittelu →
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {todayMeals.map((meal, index) => (
-              <div
-                key={meal.id || index}
-                className="bg-orange-50 rounded-lg p-4 border border-orange-200/50"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-slate-800">{meal.name}</h4>
-                  <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full capitalize">
-                    {meal.type === 'breakfast' ? 'Aamiainen' :
-                     meal.type === 'lunch' ? 'Lounas' :
-                     meal.type === 'dinner' ? 'Päivällinen' :
-                     meal.type === 'snack' ? 'Välipala' : 'Iltapala'}
-                  </span>
-                </div>
-                <div className="flex items-center text-sm text-slate-600 mb-2">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>{meal.prepTime} min</span>
-                </div>
-                <div className="text-xs text-slate-600">
-                  {meal.ingredients.slice(0, 3).join(', ')}
-                  {meal.ingredients.length > 3 && '...'}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
