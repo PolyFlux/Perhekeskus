@@ -23,11 +23,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
       return false;
     });
 
-    // Ryhmittele tehtävät henkilöittäin
+    // Ryhmittele tehtävät henkilöittäin - jokainen henkilö lasketaan erikseen
     const tasksByPerson: { [person: string]: any[] } = {};
     
     todayTasksFiltered.forEach(task => {
       task.assignedTo.forEach((person: string) => {
+        // Ohita "Kuka tahansa" ja "Perhe" -merkinnät
+        if (person === 'Kuka tahansa' || person === 'Perhe') {
+          return;
+        }
+        
         if (!tasksByPerson[person]) {
           tasksByPerson[person] = [];
         }
@@ -62,7 +67,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
   };
 
   const tasksByPerson = getTodayTasksByPerson();
-  const totalTodayTasks = Object.values(tasksByPerson).reduce((sum, tasks) => sum + tasks.length, 0);
 
   const quickStats = [
     { 
