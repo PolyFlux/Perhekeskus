@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, UtensilsCrossed, ShoppingCart, Clock, Settings, ChefHat, Trash2, X } from 'lucide-react';
+import { Plus, UtensilsCrossed, ShoppingCart, Clock, Settings, ChefHat, Trash2, X, Calendar } from 'lucide-react';
 
 interface Meal {
   id: number;
