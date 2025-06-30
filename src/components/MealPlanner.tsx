@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, UtensilsCrossed, ShoppingCart, Clock, Settings, ChefHat, Trash2 } from 'lucide-react';
+import { Plus, UtensilsCrossed, ShoppingCart, Clock, Settings, ChefHat, Trash2, X } from 'lucide-react';
 
 interface Meal {
   id: number;
@@ -12,6 +12,7 @@ interface Meal {
 interface DayMeals {
   date: string;
   meals: { [key: string]: Meal | null };
+  extras: ExtraItem[];
 }
 
 interface ExtraItem {
@@ -71,6 +72,8 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
   const [selectedMealType, setSelectedMealType] = useState<string>('');
   const [newExtraItem, setNewExtraItem] = useState('');
   const [newExtraQuantity, setNewExtraQuantity] = useState('');
+  const [newDayExtra, setNewDayExtra] = useState<{ [key: string]: string }>({});
+  const [newDayExtraQuantity, setNewDayExtraQuantity] = useState<{ [key: string]: string }>({});
 
   // Mukautetut ateriat
   const [customMeals, setCustomMeals] = useState<Meal[]>([]);
@@ -156,7 +159,8 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
             dinner: null,
             snack: null,
             evening_snack: null
-          }
+          },
+          extras: []
         });
       }
       setAllPeriodMeals({ ...allPeriodMeals, [periodKey]: days });
@@ -188,6 +192,36 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
     const updatedMeals = periodMeals.map(day => 
       day.date === dayDate 
         ? { ...day, meals: { ...day.meals, [mealType]: null } }
+        : day
+    );
+    setAllPeriodMeals({ ...allPeriodMeals, [currentPeriodKey]: updatedMeals });
+  };
+
+  const addExtraToDay = (dayDate: string) => {
+    const itemText = newDayExtra[dayDate]?.trim();
+    if (!itemText) return;
+
+    const extraItem: ExtraItem = {
+      id: Date.now(),
+      text: itemText,
+      quantity: newDayExtraQuantity[dayDate]?.trim() || undefined
+    };
+
+    const updatedMeals = periodMeals.map(day => 
+      day.date === dayDate 
+        ? { ...day, extras: [...(day.extras || []), extraItem] }
+        : day
+    );
+    
+    setAllPeriodMeals({ ...allPeriodMeals, [currentPeriodKey]: updatedMeals });
+    setNewDayExtra({ ...newDayExtra, [dayDate]: '' });
+    setNewDayExtraQuantity({ ...newDayExtraQuantity, [dayDate]: '' });
+  };
+
+  const removeExtraFromDay = (dayDate: string, extraId: number) => {
+    const updatedMeals = periodMeals.map(day => 
+      day.date === dayDate 
+        ? { ...day, extras: (day.extras || []).filter(extra => extra.id !== extraId) }
         : day
     );
     setAllPeriodMeals({ ...allPeriodMeals, [currentPeriodKey]: updatedMeals });
@@ -250,15 +284,30 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
       quantity: count > 1 ? `${count}x` : undefined
     }));
 
-    // Lisää ylimääräiset tuotteet
+    // Lisää ylimääräiset tuotteet (jakson yleiset)
     const extraItems: ListItem[] = periodExtras.map((extra, index) => ({
       id: Date.now() + 1000 + index,
       text: `[Ruokasuunnittelu] ${extra.text}`,
       completed: false,
       quantity: extra.quantity
     }));
+
+    // Lisää päiväkohtaiset lisäksi-tuotteet
+    const dayExtraItems: ListItem[] = [];
+    periodMeals.forEach((day, dayIndex) => {
+      if (day.extras && day.extras.length > 0) {
+        day.extras.forEach((extra, extraIndex) => {
+          dayExtraItems.push({
+            id: Date.now() + 2000 + dayIndex * 100 + extraIndex,
+            text: `[Ruokasuunnittelu] ${extra.text}`,
+            completed: false,
+            quantity: extra.quantity
+          });
+        });
+      }
+    });
     
-    setSharedShoppingList([...nonMealItems, ...newMealItems, ...extraItems]);
+    setSharedShoppingList([...nonMealItems, ...newMealItems, ...extraItems, ...dayExtraItems]);
   };
 
   const clearMealItemsFromShoppingList = () => {
@@ -476,11 +525,67 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
             })}
           </div>
         ))}
+
+        {/* Lisäksi-rivi jokaiselle päivälle */}
+        <div className="grid border-b border-slate-200 bg-slate-50/50" style={{ gridTemplateColumns: `80px repeat(${Math.min(planningSettings.periodLength, 7)}, 1fr)` }}>
+          <div className="p-2 flex items-center justify-center bg-slate-100 text-slate-700 border-r border-slate-200">
+            <span className="text-xs font-medium">Lisäksi</span>
+          </div>
+          {periodMeals.slice(0, Math.min(planningSettings.periodLength, 7)).map((day, dayIndex) => (
+            <div key={dayIndex} className="p-2 border-l border-slate-200 min-h-20">
+              {/* Lisää uusi lisäksi-tuote */}
+              <div className="flex space-x-1 mb-2">
+                <input
+                  type="text"
+                  placeholder="Lisää..."
+                  value={newDayExtra[day.date] || ''}
+                  onChange={(e) => setNewDayExtra({ ...newDayExtra, [day.date]: e.target.value })}
+                  onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
+                  className="flex-1 px-2 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Määrä"
+                  value={newDayExtraQuantity[day.date] || ''}
+                  onChange={(e) => setNewDayExtraQuantity({ ...newDayExtraQuantity, [day.date]: e.target.value })}
+                  onKeyPress={(e) => e.key === 'Enter' && addExtraToDay(day.date)}
+                  className="w-12 px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <button
+                  onClick={() => addExtraToDay(day.date)}
+                  className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition-colors duration-200"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+              </div>
+              
+              {/* Näytä lisäksi-tuotteet */}
+              <div className="space-y-1">
+                {(day.extras || []).map((extra) => (
+                  <div key={extra.id} className="flex items-center justify-between bg-white rounded p-1 border border-slate-200 group">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-slate-800 truncate block">{extra.text}</span>
+                      {extra.quantity && (
+                        <span className="text-xs text-slate-600">({extra.quantity})</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => removeExtraFromDay(day.date, extra.id)}
+                      className="text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Ylimääräiset tuotteet */}
+      {/* Ylimääräiset tuotteet (jakson yleiset) */}
       <div className="bg-white rounded-xl border border-slate-200/50 p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">Ylimääräiset ostokset</h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">Ylimääräiset ostokset (koko jakso)</h3>
         <div className="flex space-x-2 mb-4">
           <input
             type="text"
@@ -570,7 +675,18 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
               )}
             </div>
           ))}
-          {generateShoppingList().length === 0 && periodExtras.length === 0 && (
+          {/* Näytä päiväkohtaiset lisäksi-tuotteet */}
+          {periodMeals.flatMap(day => day.extras || []).map((extra) => (
+            <div key={`day-${extra.id}`} className="flex items-center justify-between bg-slate-50 rounded-lg p-2">
+              <span className="text-sm text-slate-800">{extra.text}</span>
+              {extra.quantity && (
+                <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                  {extra.quantity}
+                </span>
+              )}
+            </div>
+          ))}
+          {generateShoppingList().length === 0 && periodExtras.length === 0 && periodMeals.every(day => !day.extras || day.extras.length === 0) && (
             <div className="col-span-full text-center py-8 text-slate-500">
               <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>Lisää aterioita luodaksesi ostoslistan</p>
