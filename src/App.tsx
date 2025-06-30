@@ -51,6 +51,19 @@ interface PlanningSettings {
   periodLength: number; // päivien määrä
 }
 
+interface Task {
+  id: number;
+  name: string;
+  completed: boolean;
+  priority: 'low' | 'medium' | 'high';
+  category: string;
+  type: 'daily' | 'weekly' | 'specific' | 'anytime';
+  assignedTo: string[];
+  dueDate?: string;
+  description?: string;
+  createdAt: Date;
+}
+
 function App() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   
@@ -84,6 +97,51 @@ function App() {
     return startOfPeriod;
   });
 
+  // Tehtävien tila (lisätään tämä)
+  const [allTasks, setAllTasks] = useState<Task[]>([
+    {
+      id: 1,
+      name: 'Ruokaostokset',
+      completed: false,
+      priority: 'high',
+      category: 'kotitalous',
+      type: 'specific',
+      assignedTo: ['Äiti'],
+      dueDate: new Date().toISOString().split('T')[0],
+      description: 'Viikon ruokaostokset kaupasta',
+      createdAt: new Date()
+    },
+    {
+      id: 2,
+      name: 'Siivoa keittiö',
+      completed: false,
+      priority: 'medium',
+      category: 'kotitalous',
+      type: 'daily',
+      assignedTo: ['Kuka tahansa'],
+      createdAt: new Date()
+    },
+    {
+      id: 3,
+      name: 'Jalkapalloharjoitukset',
+      completed: false,
+      priority: 'high',
+      category: 'urheilu',
+      type: 'specific',
+      assignedTo: ['Perhe'],
+      dueDate: new Date().toISOString().split('T')[0],
+      description: 'Viikkoharjoitukset kentällä',
+      createdAt: new Date()
+    }
+  ]);
+
+  // Budjettitiedot (lisätään tämä)
+  const [budgetData, setBudgetData] = useState({
+    totalBudget: 3000,
+    spent: 1760,
+    remaining: 1240
+  });
+
   const navigationItems = [
     { id: 'dashboard', label: 'Etusivu', icon: Home },
     { id: 'calendar', label: 'Kalenteri', icon: Calendar },
@@ -93,14 +151,38 @@ function App() {
     { id: 'budget', label: 'Budjetti', icon: PiggyBank },
   ];
 
+  // Hae tämän päivän ateriat dashboardia varten
+  const getTodayMeals = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const currentPeriodKey = `${periodStart.getFullYear()}-${periodStart.getMonth()}-${periodStart.getDate()}-${planningSettings.periodLength}`;
+    const periodMeals = allPeriodMeals[currentPeriodKey] || [];
+    
+    const todayMealsData = periodMeals.find(day => day.date === today);
+    if (!todayMealsData) return [];
+    
+    return Object.values(todayMealsData.meals).filter(meal => meal !== null) as Meal[];
+  };
+
   const renderCurrentView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard onNavigate={setCurrentView} />;
+        return (
+          <Dashboard 
+            onNavigate={setCurrentView}
+            todayTasks={allTasks}
+            budgetRemaining={budgetData.remaining}
+            todayMeals={getTodayMeals()}
+          />
+        );
       case 'calendar':
         return <CalendarView />;
       case 'todos':
-        return <TodoLists />;
+        return (
+          <TodoLists 
+            allTasks={allTasks}
+            setAllTasks={setAllTasks}
+          />
+        );
       case 'meals':
         return (
           <MealPlanner 
@@ -126,7 +208,14 @@ function App() {
       case 'budget':
         return <BudgetTracker />;
       default:
-        return <Dashboard onNavigate={setCurrentView} />;
+        return (
+          <Dashboard 
+            onNavigate={setCurrentView}
+            todayTasks={allTasks}
+            budgetRemaining={budgetData.remaining}
+            todayMeals={getTodayMeals()}
+          />
+        );
     }
   };
 
