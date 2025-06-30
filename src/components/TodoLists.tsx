@@ -10,6 +10,7 @@ interface Task {
   category: string;
   assignedTo: string[];
   assignmentType: 'individual' | 'shared';
+  timeframe: 'specific' | 'weekly'; // Uusi kenttä
 }
 
 interface PersonViewState {
@@ -22,11 +23,13 @@ const TodoLists: React.FC = () => {
   const [newPersonName, setNewPersonName] = useState('');
 
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, title: 'Ruokaostokset', completed: false, priority: 'high', dueDate: new Date(), category: 'Kotitalous', assignedTo: ['Äiti'], assignmentType: 'individual' },
-    { id: 2, title: 'Hae kuivapesu', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 86400000), category: 'Asiointi', assignedTo: ['Isi'], assignmentType: 'individual' },
-    { id: 3, title: 'Työprojektin deadline', completed: false, priority: 'high', dueDate: new Date(Date.now() + 604800000), category: 'Työ', assignedTo: ['Isi'], assignmentType: 'individual' },
-    { id: 4, title: 'Synttärilahjan osto', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 1209600000), category: 'Perhe', assignedTo: ['Äiti'], assignmentType: 'individual' },
-    { id: 5, title: 'Siivoa olohuone', completed: false, priority: 'medium', dueDate: new Date(), category: 'Kotitalous', assignedTo: ['Isi', 'Äiti'], assignmentType: 'shared' },
+    { id: 1, title: 'Ruokaostokset', completed: false, priority: 'high', dueDate: new Date(), category: 'Kotitalous', assignedTo: ['Äiti'], assignmentType: 'individual', timeframe: 'specific' },
+    { id: 2, title: 'Hae kuivapesu', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 86400000), category: 'Asiointi', assignedTo: ['Isi'], assignmentType: 'individual', timeframe: 'specific' },
+    { id: 3, title: 'Työprojektin deadline', completed: false, priority: 'high', dueDate: new Date(Date.now() + 604800000), category: 'Työ', assignedTo: ['Isi'], assignmentType: 'individual', timeframe: 'specific' },
+    { id: 4, title: 'Synttärilahjan osto', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 1209600000), category: 'Perhe', assignedTo: ['Äiti'], assignmentType: 'individual', timeframe: 'specific' },
+    { id: 5, title: 'Siivoa olohuone', completed: false, priority: 'medium', dueDate: new Date(), category: 'Kotitalous', assignedTo: ['Isi', 'Äiti'], assignmentType: 'shared', timeframe: 'specific' },
+    { id: 6, title: 'Järjestä vaatekaappi', completed: false, priority: 'low', category: 'Kotitalous', assignedTo: ['Äiti'], assignmentType: 'individual', timeframe: 'weekly' },
+    { id: 7, title: 'Vie roskat', completed: false, priority: 'medium', category: 'Kotitalous', assignedTo: ['Isi', 'Äiti'], assignmentType: 'shared', timeframe: 'weekly' },
   ]);
 
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
@@ -42,7 +45,8 @@ const TodoLists: React.FC = () => {
     category: 'Kotitalous',
     assignmentType: 'individual' as 'individual' | 'shared',
     assignedTo: ['Äiti'],
-    selectedPeople: [] as string[]
+    selectedPeople: [] as string[],
+    timeframe: 'specific' as 'specific' | 'weekly'
   });
 
   const categories = ['Kotitalous', 'Asiointi', 'Urheilu', 'Koulu', 'Terveys', 'Työ', 'Perhe', 'Muu'];
@@ -130,10 +134,11 @@ const TodoLists: React.FC = () => {
       title: newTask.title.trim(),
       completed: false,
       priority: newTask.priority,
-      dueDate: new Date(newTask.dueDate),
+      dueDate: newTask.timeframe === 'specific' ? new Date(newTask.dueDate) : undefined,
       category: newTask.category,
       assignedTo: assignedTo,
-      assignmentType: newTask.assignmentType
+      assignmentType: newTask.assignmentType,
+      timeframe: newTask.timeframe
     };
 
     setTasks([...tasks, task]);
@@ -144,7 +149,8 @@ const TodoLists: React.FC = () => {
       category: 'Kotitalous',
       assignmentType: 'individual',
       assignedTo: [people[0] || 'Äiti'],
-      selectedPeople: []
+      selectedPeople: [],
+      timeframe: 'specific'
     });
     setShowAddTaskModal(false);
   };
@@ -200,16 +206,32 @@ const TodoLists: React.FC = () => {
     );
   };
 
+  const getWeeklyTasks = (person: string) => {
+    return tasks.filter(task => 
+      task.assignedTo.includes(person) && 
+      task.timeframe === 'weekly'
+    );
+  };
+
   const getFilteredTasks = (person: string, view: 'today' | 'week' | 'upcoming') => {
     const personTasks = tasks.filter(task => task.assignedTo.includes(person));
     
     switch (view) {
       case 'today':
-        return personTasks.filter(task => task.dueDate && isToday(task.dueDate));
+        return personTasks.filter(task => 
+          (task.dueDate && isToday(task.dueDate)) || 
+          task.timeframe === 'weekly'
+        );
       case 'week':
-        return personTasks.filter(task => task.dueDate && isThisWeek(task.dueDate));
+        return personTasks.filter(task => 
+          (task.dueDate && isThisWeek(task.dueDate)) || 
+          task.timeframe === 'weekly'
+        );
       case 'upcoming':
-        return personTasks.filter(task => task.dueDate && task.dueDate > new Date());
+        return personTasks.filter(task => 
+          (task.dueDate && task.dueDate > new Date()) || 
+          task.timeframe === 'weekly'
+        );
       default:
         return personTasks;
     }
@@ -217,7 +239,9 @@ const TodoLists: React.FC = () => {
 
   const getPersonStats = (person: string) => {
     const personTasks = tasks.filter(task => task.assignedTo.includes(person));
-    const todayTasks = personTasks.filter(task => task.dueDate && isToday(task.dueDate));
+    const todayTasks = personTasks.filter(task => 
+      (task.dueDate && isToday(task.dueDate)) || task.timeframe === 'weekly'
+    );
     const completedToday = todayTasks.filter(task => task.completed).length;
     const totalToday = todayTasks.length;
     const overdueTasks = personTasks.filter(task => 
@@ -273,9 +297,89 @@ const TodoLists: React.FC = () => {
 
   const renderWeekView = (person: string) => {
     const weekDays = getWeekDays();
+    const weeklyTasks = getWeeklyTasks(person);
     
     return (
       <div className="space-y-3">
+        {/* Viikkokohtaiset tehtävät */}
+        {weeklyTasks.length > 0 && (
+          <div className="border rounded-lg p-3 bg-purple-50 border-purple-200">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-sm text-purple-800">
+                Hoidettava viikon aikana
+              </h4>
+              <span className="text-xs text-purple-600">
+                {weeklyTasks.length} tehtävä{weeklyTasks.length !== 1 ? 'a' : ''}
+              </span>
+            </div>
+            
+            <div className="space-y-2">
+              {weeklyTasks
+                .sort((a, b) => {
+                  if (a.completed !== b.completed) {
+                    return a.completed ? 1 : -1;
+                  }
+                  const priorityOrder = { high: 0, medium: 1, low: 2 };
+                  return priorityOrder[a.priority] - priorityOrder[b.priority];
+                })
+                .map(task => (
+                  <div
+                    key={task.id}
+                    className={`flex items-center space-x-2 p-2 rounded border transition-all duration-200 group ${
+                      task.completed 
+                        ? 'bg-white border-slate-200 opacity-60' 
+                        : 'bg-white border-purple-200 hover:border-purple-300'
+                    }`}
+                  >
+                    <button
+                      onClick={() => toggleTask(task.id)}
+                      className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
+                        task.completed
+                          ? 'bg-green-500 border-green-500 text-white'
+                          : 'border-slate-300 hover:border-green-500'
+                      }`}
+                    >
+                      {task.completed && <Check className="h-2 w-2" />}
+                    </button>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <span className={`text-sm truncate ${
+                          task.completed ? 'line-through text-slate-500' : 'text-slate-800'
+                        }`}>
+                          {task.title}
+                        </span>
+                        <span className={`px-1 py-0.5 rounded text-xs border ${priorityColors[task.priority]}`}>
+                          {task.priority === 'high' ? 'K' : task.priority === 'medium' ? 'K' : 'M'}
+                        </span>
+                        {task.assignmentType === 'shared' && (
+                          <Users className="h-3 w-3 text-blue-500" title="Jaettu tehtävä" />
+                        )}
+                        <Clock className="h-3 w-3 text-purple-500" title="Viikkokohtainen tehtävä" />
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {task.category}
+                        {task.assignmentType === 'shared' && (
+                          <span className="ml-2 text-blue-600">
+                            ({formatAssignees(task)})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Päiväkohtaiset tehtävät */}
         {weekDays.map((day, index) => {
           const dayTasks = getTasksForDay(person, day);
           const isCurrentDay = isToday(day);
@@ -392,6 +496,11 @@ const TodoLists: React.FC = () => {
                 return priorityOrder[a.priority] - priorityOrder[b.priority];
               }
               
+              // Viikkokohtaiset tehtävät ensin
+              if (a.timeframe !== b.timeframe) {
+                return a.timeframe === 'weekly' ? -1 : 1;
+              }
+              
               if (a.dueDate && b.dueDate) {
                 return a.dueDate.getTime() - b.dueDate.getTime();
               }
@@ -404,7 +513,9 @@ const TodoLists: React.FC = () => {
                 className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-200 group ${
                   task.completed 
                     ? 'bg-slate-50 border-slate-200 opacity-60' 
-                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                    : task.timeframe === 'weekly'
+                      ? 'bg-purple-50 border-purple-200 hover:bg-purple-100'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 <button
@@ -434,6 +545,12 @@ const TodoLists: React.FC = () => {
                         <span>Jaettu</span>
                       </span>
                     )}
+                    {task.timeframe === 'weekly' && (
+                      <span className="flex items-center space-x-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
+                        <Clock className="h-3 w-3" />
+                        <span>Viikko</span>
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center space-x-3 text-xs text-slate-600">
                     <span className="bg-slate-200 px-2 py-1 rounded-full">
@@ -445,6 +562,11 @@ const TodoLists: React.FC = () => {
                       }`}>
                         <Calendar className="h-3 w-3" />
                         <span>{formatDate(task.dueDate)}</span>
+                      </span>
+                    )}
+                    {task.timeframe === 'weekly' && (
+                      <span className="text-purple-600">
+                        Hoidettava viikon aikana
                       </span>
                     )}
                     {task.assignmentType === 'shared' && (
@@ -760,16 +882,55 @@ const TodoLists: React.FC = () => {
                   </div>
                 </div>
               )}
-              
+
+              {/* Ajankohta */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Eräpäivä</label>
-                <input
-                  type="date"
-                  value={newTask.dueDate}
-                  onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+                <label className="block text-sm font-medium text-slate-700 mb-3">Ajankohta</label>
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="timeframe"
+                      value="specific"
+                      checked={newTask.timeframe === 'specific'}
+                      onChange={(e) => setNewTask({ ...newTask, timeframe: e.target.value as 'specific' | 'weekly' })}
+                      className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-slate-600" />
+                      <span className="text-slate-800">Tietty päivämäärä</span>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="timeframe"
+                      value="weekly"
+                      checked={newTask.timeframe === 'weekly'}
+                      onChange={(e) => setNewTask({ ...newTask, timeframe: e.target.value as 'specific' | 'weekly' })}
+                      className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-4 w-4 text-purple-600" />
+                      <span className="text-slate-800">Hoidettava viikon aikana</span>
+                    </div>
+                  </label>
+                </div>
               </div>
+              
+              {/* Eräpäivä (vain tietylle päivämäärälle) */}
+              {newTask.timeframe === 'specific' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Eräpäivä</label>
+                  <input
+                    type="date"
+                    value={newTask.dueDate}
+                    onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              )}
               
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Prioriteetti</label>
@@ -812,6 +973,7 @@ const TodoLists: React.FC = () => {
                   <div className="text-sm text-slate-600">
                     <p><strong>Tehtävä:</strong> {newTask.title}</p>
                     <p><strong>Tyyppi:</strong> {newTask.assignmentType === 'individual' ? 'Henkilökohtainen' : 'Jaettu'}</p>
+                    <p><strong>Ajankohta:</strong> {newTask.timeframe === 'specific' ? 'Tietty päivämäärä' : 'Hoidettava viikon aikana'}</p>
                     <p><strong>Vastuussa:</strong> {
                       newTask.assignmentType === 'individual' 
                         ? newTask.assignedTo[0]
