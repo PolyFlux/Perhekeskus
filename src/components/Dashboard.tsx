@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckSquare, PiggyBank, UtensilsCrossed, Clock, AlertCircle, Calendar } from 'lucide-react';
+import { CheckSquare, PiggyBank, UtensilsCrossed, Clock, AlertCircle, Calendar, User } from 'lucide-react';
 
 interface DashboardProps {
   onNavigate: (view: string) => void;
@@ -10,17 +10,32 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRemaining, todayMeals }) => {
-  // Laske tämän päivän tehtävät
-  const getTodayTasksCount = () => {
+  // Laske tämän päivän tehtävät henkilöittäin
+  const getTodayTasksByPerson = () => {
     const today = new Date();
     const todayString = today.toISOString().split('T')[0];
     
-    return todayTasks.filter(task => {
+    const todayTasksFiltered = todayTasks.filter(task => {
+      if (task.completed) return false;
       if (task.type === 'daily') return true;
       if (task.type === 'weekly') return true;
       if (task.type === 'specific' && task.dueDate === todayString) return true;
       return false;
-    }).filter(task => !task.completed).length;
+    });
+
+    // Ryhmittele tehtävät henkilöittäin
+    const tasksByPerson: { [person: string]: any[] } = {};
+    
+    todayTasksFiltered.forEach(task => {
+      task.assignedTo.forEach((person: string) => {
+        if (!tasksByPerson[person]) {
+          tasksByPerson[person] = [];
+        }
+        tasksByPerson[person].push(task);
+      });
+    });
+
+    return tasksByPerson;
   };
 
   // Formatoi budjetti
@@ -46,15 +61,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
     return mealTexts.join(' • ');
   };
 
+  const tasksByPerson = getTodayTasksByPerson();
+  const totalTodayTasks = Object.values(tasksByPerson).reduce((sum, tasks) => sum + tasks.length, 0);
+
   const quickStats = [
-    { 
-      label: 'Tehtäviä tänään', 
-      value: getTodayTasksCount().toString(), 
-      color: 'text-blue-600', 
-      bgColor: 'bg-blue-50',
-      icon: CheckSquare,
-      onClick: () => onNavigate('todos')
-    },
     { 
       label: 'Budjetti jäljellä', 
       value: formatCurrency(budgetRemaining), 
@@ -105,8 +115,85 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
         </p>
       </div>
 
-      {/* Dynaamiset tilastot */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Tehtävät henkilöittäin */}
+      <div className="bg-white rounded-xl border border-slate-200/50 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center space-x-2">
+            <CheckSquare className="h-5 w-5 text-blue-600" />
+            <span>Tehtäviä tänään ({totalTodayTasks})</span>
+          </h3>
+          <button
+            onClick={() => onNavigate('todos')}
+            className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors duration-200"
+          >
+            Näytä kaikki tehtävät →
+          </button>
+        </div>
+
+        {Object.keys(tasksByPerson).length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(tasksByPerson).map(([person, tasks]) => (
+              <div key={person} className="bg-slate-50 rounded-lg p-4 border border-slate-200/50">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="bg-blue-100 p-2 rounded-lg">
+                      <User className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-slate-800">{person}</h4>
+                      <p className="text-sm text-slate-600">{tasks.length} tehtävä{tasks.length !== 1 ? 'a' : ''}</p>
+                    </div>
+                  </div>
+                  <div className="bg-blue-600 text-white text-sm font-bold px-2 py-1 rounded-full">
+                    {tasks.length}
+                  </div>
+                </div>
+                
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {tasks.slice(0, 3).map((task, index) => (
+                    <div key={task.id || index} className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        task.priority === 'high' ? 'bg-red-400' : 
+                        task.priority === 'medium' ? 'bg-yellow-400' : 'bg-green-400'
+                      }`} />
+                      <span className="text-sm text-slate-700 truncate">{task.name}</span>
+                      {task.type === 'daily' && (
+                        <span className="bg-blue-100 text-blue-700 text-xs px-1 py-0.5 rounded flex-shrink-0">
+                          P
+                        </span>
+                      )}
+                      {task.type === 'weekly' && (
+                        <span className="bg-green-100 text-green-700 text-xs px-1 py-0.5 rounded flex-shrink-0">
+                          V
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {tasks.length > 3 && (
+                    <div className="text-xs text-slate-500 text-center pt-1">
+                      +{tasks.length - 3} lisää...
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-slate-500">
+            <CheckSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p>Ei tehtäviä tänään</p>
+            <button
+              onClick={() => onNavigate('todos')}
+              className="text-blue-600 hover:text-blue-700 text-sm mt-2 transition-colors duration-200"
+            >
+              Lisää tehtäviä
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Muut tilastot */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {quickStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -139,8 +226,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
       <div className="bg-white rounded-xl border border-slate-200/50 p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-slate-800 flex items-center space-x-2">
-            <CheckSquare className="h-5 w-5 text-blue-600" />
-            <span>Tämän päivän tärkeät tehtävät</span>
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <span>Tärkeät tehtävät tänään</span>
           </h3>
           <button
             onClick={() => onNavigate('todos')}
@@ -204,7 +291,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
           </div>
         ) : (
           <div className="text-center py-8 text-slate-500">
-            <CheckSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
             <p>Ei tärkeitä tehtäviä tänään</p>
             <button
               onClick={() => onNavigate('todos')}
