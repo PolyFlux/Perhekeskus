@@ -325,7 +325,7 @@ const TodoLists: React.FC = () => {
             >
               <span>{filter.icon}</span>
               <span>{filter.label}</span>
-            </div>
+            </button>
           ))}
         </div>
       </div>
