@@ -27,13 +27,26 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
     const today = new Date();
     const todayString = today.toISOString().split('T')[0];
     
+    console.log('Dashboard: Kaikki tehtävät:', todayTasks);
+    console.log('Dashboard: Tämän päivän päivämäärä:', todayString);
+    
     const todayTasksFiltered = todayTasks.filter(task => {
+      console.log(`Tehtävä "${task.name}":`, {
+        completed: task.completed,
+        type: task.type,
+        dueDate: task.dueDate,
+        assignedTo: task.assignedTo
+      });
+      
       if (task.completed) return false;
       if (task.type === 'daily') return true;
       if (task.type === 'weekly') return true;
+      if (task.type === 'anytime') return true;
       if (task.type === 'specific' && task.dueDate === todayString) return true;
       return false;
     });
+
+    console.log('Dashboard: Suodatetut tehtävät:', todayTasksFiltered);
 
     // Ryhmittele tehtävät henkilöittäin - jokainen henkilö lasketaan erikseen
     const tasksByPerson: { [person: string]: Task[] } = {};
@@ -52,6 +65,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
       });
     });
 
+    console.log('Dashboard: Tehtävät henkilöittäin:', tasksByPerson);
     return tasksByPerson;
   };
 
@@ -119,6 +133,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
         if (task.completed) return false;
         if (task.type === 'daily') return true;
         if (task.type === 'weekly') return true;
+        if (task.type === 'anytime') return true;
         if (task.type === 'specific' && task.dueDate === todayString) return true;
         return false;
       })
