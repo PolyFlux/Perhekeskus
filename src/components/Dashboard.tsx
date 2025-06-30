@@ -66,6 +66,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
 
   const quickStats = [
     { 
+      label: 'Tehtäviä tänään', 
+      value: '', // Erikoisarvo tehtäville
+      color: 'text-blue-600', 
+      bgColor: 'bg-blue-50',
+      icon: CheckSquare,
+      onClick: () => onNavigate('todos'),
+      isTaskWidget: true
+    },
+    { 
       label: 'Budjetti jäljellä', 
       value: formatCurrency(budgetRemaining), 
       color: 'text-purple-600', 
@@ -115,85 +124,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
         </p>
       </div>
 
-      {/* Tehtävät henkilöittäin */}
-      <div className="bg-white rounded-xl border border-slate-200/50 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-slate-800 flex items-center space-x-2">
-            <CheckSquare className="h-5 w-5 text-blue-600" />
-            <span>Tehtäviä tänään ({totalTodayTasks})</span>
-          </h3>
-          <button
-            onClick={() => onNavigate('todos')}
-            className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors duration-200"
-          >
-            Näytä kaikki tehtävät →
-          </button>
-        </div>
-
-        {Object.keys(tasksByPerson).length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(tasksByPerson).map(([person, tasks]) => (
-              <div key={person} className="bg-slate-50 rounded-lg p-4 border border-slate-200/50">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <div className="bg-blue-100 p-2 rounded-lg">
-                      <User className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-slate-800">{person}</h4>
-                      <p className="text-sm text-slate-600">{tasks.length} tehtävä{tasks.length !== 1 ? 'a' : ''}</p>
-                    </div>
-                  </div>
-                  <div className="bg-blue-600 text-white text-sm font-bold px-2 py-1 rounded-full">
-                    {tasks.length}
-                  </div>
-                </div>
-                
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {tasks.slice(0, 3).map((task, index) => (
-                    <div key={task.id || index} className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        task.priority === 'high' ? 'bg-red-400' : 
-                        task.priority === 'medium' ? 'bg-yellow-400' : 'bg-green-400'
-                      }`} />
-                      <span className="text-sm text-slate-700 truncate">{task.name}</span>
-                      {task.type === 'daily' && (
-                        <span className="bg-blue-100 text-blue-700 text-xs px-1 py-0.5 rounded flex-shrink-0">
-                          P
-                        </span>
-                      )}
-                      {task.type === 'weekly' && (
-                        <span className="bg-green-100 text-green-700 text-xs px-1 py-0.5 rounded flex-shrink-0">
-                          V
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                  {tasks.length > 3 && (
-                    <div className="text-xs text-slate-500 text-center pt-1">
-                      +{tasks.length - 3} lisää...
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-slate-500">
-            <CheckSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>Ei tehtäviä tänään</p>
-            <button
-              onClick={() => onNavigate('todos')}
-              className="text-blue-600 hover:text-blue-700 text-sm mt-2 transition-colors duration-200"
-            >
-              Lisää tehtäviä
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Muut tilastot */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Pikatilastot */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {quickStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -212,9 +144,28 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, todayTasks, budgetRem
                       {stat.label}
                     </div>
                   </div>
-                  <div className={`${stat.isText ? 'text-lg' : 'text-2xl'} font-bold ${stat.color} ${stat.isText ? 'leading-tight' : ''}`}>
-                    {stat.value}
-                  </div>
+                  
+                  {stat.isTaskWidget ? (
+                    // Tehtävät henkilöittäin
+                    <div className="space-y-2">
+                      {Object.keys(tasksByPerson).length > 0 ? (
+                        Object.entries(tasksByPerson).map(([person, tasks]) => (
+                          <div key={person} className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-slate-700">{person}</span>
+                            <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                              {tasks.length}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-slate-500">Ei tehtäviä tänään</div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className={`${stat.isText ? 'text-lg' : 'text-2xl'} font-bold ${stat.color} ${stat.isText ? 'leading-tight' : ''}`}>
+                      {stat.value}
+                    </div>
+                  )}
                 </div>
               </div>
             </button>
