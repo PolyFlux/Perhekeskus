@@ -32,7 +32,7 @@ const TodoLists: React.FC = () => {
     },
     {
       id: 'person2',
-      name: 'Isä',
+      name: 'Isi',
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
       tasks: [

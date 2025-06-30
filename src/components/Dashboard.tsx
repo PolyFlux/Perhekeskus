@@ -63,7 +63,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   const upcomingTasks = [
     { title: 'Ruokaostokset', person: 'Äiti', time: '14:00', priority: 'high' },
-    { title: 'Hae kuivapesu', person: 'Isä', time: '16:30', priority: 'medium' },
+    { title: 'Hae kuivapesu', person: 'Isi', time: '16:30', priority: 'medium' },
     { title: 'Jalkapalloharjoitukset', person: 'Perhe', time: '18:00', priority: 'high' },
   ];
 
