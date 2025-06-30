@@ -4,7 +4,7 @@ import { Plus, UtensilsCrossed, ShoppingCart, Clock, Settings, ChefHat, Trash2 }
 interface Meal {
   id: number;
   name: string;
-  type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'evening_snack';
   ingredients: string[];
   prepTime: number;
 }
@@ -111,6 +111,13 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
       type: 'snack',
       ingredients: ['Kreikkalainen jogurtti', 'Marjasekoitus', 'Hunaja', 'Granola'],
       prepTime: 5
+    },
+    {
+      id: 5,
+      name: 'Pähkinäsekoitus ja tee',
+      type: 'evening_snack',
+      ingredients: ['Pähkinäsekoitus', 'Tee', 'Hunaja'],
+      prepTime: 5
     }
   ];
 
@@ -118,8 +125,9 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
   const mealTypes = [
     { key: 'breakfast', label: 'Aamiainen', shortLabel: 'AA', color: 'bg-yellow-100 text-yellow-800' },
     { key: 'lunch', label: 'Lounas', shortLabel: 'LO', color: 'bg-green-100 text-green-800' },
-    { key: 'dinner', label: 'Illallinen', shortLabel: 'IL', color: 'bg-blue-100 text-blue-800' },
-    { key: 'snack', label: 'Välipala', shortLabel: 'VP', color: 'bg-purple-100 text-purple-800' }
+    { key: 'dinner', label: 'Päivällinen', shortLabel: 'PÄ', color: 'bg-blue-100 text-blue-800' },
+    { key: 'snack', label: 'Välipala', shortLabel: 'VP', color: 'bg-purple-100 text-purple-800' },
+    { key: 'evening_snack', label: 'Iltapala', shortLabel: 'IP', color: 'bg-orange-100 text-orange-800' }
   ];
 
   // Jakson avain
@@ -146,7 +154,8 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
             breakfast: null,
             lunch: null,
             dinner: null,
-            snack: null
+            snack: null,
+            evening_snack: null
           }
         });
       }
@@ -338,7 +347,7 @@ const MealPlanner: React.FC<MealPlannerProps> = ({
     const newMeals: Meal[] = newMeal.types.map(type => ({
       id: Date.now() + Math.random(),
       name: newMeal.name.trim(),
-      type: type as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+      type: type as 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'evening_snack',
       ingredients: newMeal.ingredients.filter(ing => ing.trim()),
       prepTime: newMeal.prepTime
     }));
