@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, X, User, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Check, X, User, Calendar, Clock, AlertCircle, UserPlus, Trash2 } from 'lucide-react';
 
 interface Task {
   id: number;
@@ -16,23 +16,21 @@ interface PersonViewState {
 }
 
 const TodoLists: React.FC = () => {
+  const [people, setPeople] = useState<string[]>(['Isi', 'Äiti']);
+  const [showAddPersonModal, setShowAddPersonModal] = useState(false);
+  const [newPersonName, setNewPersonName] = useState('');
+
   const [tasks, setTasks] = useState<Task[]>([
     { id: 1, title: 'Ruokaostokset', completed: false, priority: 'high', dueDate: new Date(), category: 'Kotitalous', assignedTo: 'Äiti' },
     { id: 2, title: 'Hae kuivapesu', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 86400000), category: 'Asiointi', assignedTo: 'Isi' },
-    { id: 3, title: 'Jalkapalloharjoitukset', completed: true, priority: 'high', dueDate: new Date(), category: 'Urheilu', assignedTo: 'Lapsi 1' },
-    { id: 4, title: 'Kotitehtävät', completed: false, priority: 'high', dueDate: new Date(), category: 'Koulu', assignedTo: 'Lapsi 1' },
-    { id: 5, title: 'Lääkäriaika', completed: false, priority: 'high', dueDate: new Date(Date.now() + 172800000), category: 'Terveys', assignedTo: 'Lapsi 2' },
-    { id: 6, title: 'Siivoa huone', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 259200000), category: 'Kotitalous', assignedTo: 'Lapsi 2' },
-    { id: 7, title: 'Työprojektin deadline', completed: false, priority: 'high', dueDate: new Date(Date.now() + 604800000), category: 'Työ', assignedTo: 'Isi' },
-    { id: 8, title: 'Synttärilahjan osto', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 1209600000), category: 'Perhe', assignedTo: 'Äiti' },
+    { id: 3, title: 'Työprojektin deadline', completed: false, priority: 'high', dueDate: new Date(Date.now() + 604800000), category: 'Työ', assignedTo: 'Isi' },
+    { id: 4, title: 'Synttärilahjan osto', completed: false, priority: 'medium', dueDate: new Date(Date.now() + 1209600000), category: 'Perhe', assignedTo: 'Äiti' },
   ]);
 
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [personViews, setPersonViews] = useState<PersonViewState>({
     'Äiti': 'today',
-    'Isi': 'today',
-    'Lapsi 1': 'today',
-    'Lapsi 2': 'today'
+    'Isi': 'today'
   });
 
   const [newTask, setNewTask] = useState({
@@ -43,7 +41,6 @@ const TodoLists: React.FC = () => {
     assignedTo: 'Äiti'
   });
 
-  const people = ['Äiti', 'Isi', 'Lapsi 1', 'Lapsi 2'];
   const categories = ['Kotitalous', 'Asiointi', 'Urheilu', 'Koulu', 'Terveys', 'Työ', 'Perhe', 'Muu'];
 
   const priorityColors = {
@@ -63,6 +60,45 @@ const TodoLists: React.FC = () => {
     { key: 'week', label: 'Tämä viikko', icon: Clock },
     { key: 'upcoming', label: 'Tulevat', icon: AlertCircle }
   ];
+
+  const addPerson = () => {
+    if (!newPersonName.trim()) return;
+    if (people.includes(newPersonName.trim())) {
+      alert('Henkilö on jo olemassa!');
+      return;
+    }
+
+    const personName = newPersonName.trim();
+    setPeople([...people, personName]);
+    setPersonViews(prev => ({
+      ...prev,
+      [personName]: 'today'
+    }));
+    setNewPersonName('');
+    setShowAddPersonModal(false);
+  };
+
+  const removePerson = (personName: string) => {
+    // Estä oletushenkilöiden poistaminen
+    if (personName === 'Isi' || personName === 'Äiti') {
+      alert('Oletushenkilöitä (Isi ja Äiti) ei voi poistaa.');
+      return;
+    }
+
+    // Siirrä henkilön tehtävät ensimmäiselle henkilölle
+    const firstPerson = people[0];
+    setTasks(tasks.map(task => 
+      task.assignedTo === personName 
+        ? { ...task, assignedTo: firstPerson }
+        : task
+    ));
+
+    // Poista henkilö
+    setPeople(people.filter(p => p !== personName));
+    const newPersonViews = { ...personViews };
+    delete newPersonViews[personName];
+    setPersonViews(newPersonViews);
+  };
 
   const setPersonView = (person: string, view: 'today' | 'week' | 'upcoming') => {
     setPersonViews(prev => ({
@@ -90,7 +126,7 @@ const TodoLists: React.FC = () => {
       priority: 'medium',
       dueDate: new Date().toISOString().split('T')[0],
       category: 'Kotitalous',
-      assignedTo: 'Äiti'
+      assignedTo: people[0] || 'Äiti'
     });
     setShowAddTaskModal(false);
   };
@@ -170,21 +206,31 @@ const TodoLists: React.FC = () => {
           <h2 className="text-2xl font-bold text-slate-800">Tehtävälistat</h2>
           <p className="text-slate-600">Hallinnoi perheen päivittäisiä tehtäviä</p>
         </div>
-        <button
-          onClick={() => setShowAddTaskModal(true)}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Lisää tehtävä</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowAddPersonModal(true)}
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>Lisää henkilö</span>
+          </button>
+          <button
+            onClick={() => setShowAddTaskModal(true)}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Lisää tehtävä</span>
+          </button>
+        </div>
       </div>
 
       {/* Henkilökohtaiset tehtävälistat */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {people.map(person => {
           const stats = getPersonStats(person);
-          const currentView = personViews[person];
+          const currentView = personViews[person] || 'today';
           const filteredTasks = getFilteredTasks(person, currentView);
+          const isDefaultPerson = person === 'Isi' || person === 'Äiti';
           
           return (
             <div key={person} className="bg-white rounded-xl border border-slate-200/50 overflow-hidden">
@@ -196,7 +242,18 @@ const TodoLists: React.FC = () => {
                       <User className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-800">{person}</h3>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="text-lg font-semibold text-slate-800">{person}</h3>
+                        {!isDefaultPerson && (
+                          <button
+                            onClick={() => removePerson(person)}
+                            className="text-slate-400 hover:text-red-500 transition-colors duration-200"
+                            title="Poista henkilö"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                       <div className="flex items-center space-x-4 text-sm text-slate-600">
                         <span>Tänään: {stats.completedToday}/{stats.totalToday}</span>
                         {stats.overdueTasks > 0 && (
@@ -344,6 +401,63 @@ const TodoLists: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Lisää henkilö -modaali */}
+      {showAddPersonModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-slate-800">Lisää uusi henkilö</h3>
+              <button
+                onClick={() => setShowAddPersonModal(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors duration-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Henkilön nimi</label>
+                <input
+                  type="text"
+                  value={newPersonName}
+                  onChange={(e) => setNewPersonName(e.target.value)}
+                  placeholder="Esim. Lapsi 1, Mummo, jne..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onKeyPress={(e) => e.key === 'Enter' && addPerson()}
+                />
+              </div>
+              
+              <div className="bg-blue-50 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Huomio:</strong> Uusi henkilö lisätään tehtävälistoihin ja voit alkaa määrittää heille tehtäviä.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowAddPersonModal(false)}
+                className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors duration-200"
+              >
+                Peruuta
+              </button>
+              <button
+                onClick={addPerson}
+                disabled={!newPersonName.trim()}
+                className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                  newPersonName.trim()
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                Lisää henkilö
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lisää tehtävä -modaali */}
       {showAddTaskModal && (
