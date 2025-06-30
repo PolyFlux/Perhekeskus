@@ -197,20 +197,6 @@ const TodoLists: React.FC = () => {
     return { completed, total, percentage: total > 0 ? Math.round((completed / total) * 100) : 0 };
   };
 
-  // Laske jaettujen tehtävien tilastot
-  const getSharedTasksStats = () => {
-    const allTasks = people[0]?.tasks || [];
-    const sharedTasks = allTasks.filter(task => task.isShared);
-    const completedShared = sharedTasks.filter(task => task.completed).length;
-    return {
-      total: sharedTasks.length,
-      completed: completedShared,
-      percentage: sharedTasks.length > 0 ? Math.round((completedShared / sharedTasks.length) * 100) : 0
-    };
-  };
-
-  const sharedStats = getSharedTasksStats();
-
   // Suodata tehtävät henkilön näkymän mukaan
   const getFilteredTasks = (person: Person, viewType: 'today' | 'week') => {
     if (viewType === 'today') {
@@ -399,61 +385,7 @@ const TodoLists: React.FC = () => {
         <p className="text-slate-600">Hallinnoi päivittäisiä tehtäviä ja suunnittele viikkoa</p>
       </div>
 
-      {/* Tämän päivän kokonaisedistyminen */}
-      <div className="bg-white rounded-xl border border-slate-200/50 p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">Tämän päivän edistyminen</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {people.map(person => {
-            const todayStats = getTaskStats(person, 'today');
-            return (
-              <div key={person.id} className={`${person.bgColor} rounded-xl p-4 border border-slate-200/50`}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <User className={`h-5 w-5 ${person.color}`} />
-                    <span className="font-semibold text-slate-800">{person.name}</span>
-                  </div>
-                  <span className="text-sm text-slate-600">
-                    {todayStats.completed}/{todayStats.total} tehtävää
-                  </span>
-                </div>
-                <div className="w-full bg-white rounded-full h-2 mb-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-300 ${person.color.replace('text-', 'bg-')}`}
-                    style={{ width: `${todayStats.percentage}%` }}
-                  ></div>
-                </div>
-                <div className="text-sm text-slate-600">
-                  {todayStats.percentage}% valmis tänään
-                </div>
-              </div>
-            );
-          })}
-          
-          {/* Jaettujen tehtävien tilastot */}
-          <div className="bg-orange-50 rounded-xl p-4 border border-slate-200/50">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-orange-600" />
-                <span className="font-semibold text-slate-800">Jaetut tehtävät</span>
-              </div>
-              <span className="text-sm text-slate-600">
-                {sharedStats.completed}/{sharedStats.total} tehtävää
-              </span>
-            </div>
-            <div className="w-full bg-white rounded-full h-2 mb-2">
-              <div 
-                className="h-2 rounded-full transition-all duration-300 bg-orange-600"
-                style={{ width: `${sharedStats.percentage}%` }}
-              ></div>
-            </div>
-            <div className="text-sm text-slate-600">
-              {sharedStats.percentage}% valmis
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Yksittäiset tehtävälistat - Rinnatuslayout palautettu */}
+      {/* Yksittäiset tehtävälistat */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {people.map(person => {
           const currentView = personViews[person.id] || 'today';
